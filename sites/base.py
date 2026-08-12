@@ -31,6 +31,10 @@ class BaseSiteAdapter:
         """
         return self.config.site_url
 
+    def after_search(self, page) -> None:
+        """搜索页加载完成后调用（如点击排序/时间筛选等），默认无操作。"""
+        return None
+
     def fill_search_form(self, page) -> bool:
         """
         填写搜索表单。

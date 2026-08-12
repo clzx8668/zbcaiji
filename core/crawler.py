@@ -232,6 +232,8 @@ class Crawler:
                 page.goto(adapter_url, timeout=settings.CRAWL_TIMEOUT * 1000)
                 self._wait_settled(page)
                 self._handle_auto_verify(page)
+                # 适配器在搜索页上的后续操作（如点击时间筛选 Tab）
+                self.adapter.after_search(page)
                 human_mouse_move(page)
                 random_scroll(page)
                 random_delay(1, 3)
@@ -720,7 +722,7 @@ class Crawler:
                 result = CrawlResult(
                     url=detail_url,
                     title=title,
-                    item_type=self.config.search_type,
+                    item_type=item.get("item_type") or self.config.search_type,
                 )
                 result.publish_date = item.get("publish_date", "")
                 result.amount = item.get("amount", "")
