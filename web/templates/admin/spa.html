@@ -89,19 +89,96 @@
     .card-body-custom { padding: 0; }
 
     /* ─── Table ─── */
-    .table-custom { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .table-custom {
+        width: 100%; border-collapse: collapse; font-size: 13px;
+        table-layout: fixed;
+    }
     .table-custom th {
         text-align: left; padding: 10px 16px; font-size: 11px; font-weight: 600;
         text-transform: uppercase; letter-spacing: .5px; color: var(--text-secondary);
         background: #fafbfc; border-bottom: 1px solid var(--border);
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .table-custom th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
     .table-custom th.sortable:hover { color: var(--accent); }
     .sort-arrow { color: var(--accent); font-size: 10px; margin-left: 2px; }
-    .table-custom td { padding: 10px 16px; border-bottom: 1px solid #f1f3f5; vertical-align: middle; }
+    .table-custom td {
+        padding: 10px 16px; border-bottom: 1px solid #f1f3f5; vertical-align: middle;
+        overflow: hidden; text-overflow: ellipsis;
+    }
     .table-custom tr:hover td { background: #fafbfc; }
     .table-custom a { color: var(--accent); text-decoration: none; font-weight: 500; }
     .table-custom a:hover { text-decoration: underline; }
+    .table-custom .cell-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .table-custom .cell-ellipsis a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .table-custom .col-title { white-space: normal; }
+
+    /* ─── Filter Panel ─── */
+    .filter-panel {
+        width: 100%;
+        background: #fcfcfd;
+        border-bottom: 1px solid var(--border);
+        padding: 12px 16px 4px;
+    }
+    .filter-row {
+        display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; }
+    .filter-group > label {
+        font-size: 11px; font-weight: 600; color: var(--text-secondary);
+        letter-spacing: .3px;
+    }
+    .filter-group .input, .filter-group .select {
+        height: 32px; padding: 4px 10px; font-size: 12px;
+        border-radius: var(--radius-sm); border: 1px solid var(--border);
+        background: #fff; outline: none;
+    }
+    .filter-group .input:focus, .filter-group .select:focus {
+        border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,.1);
+    }
+    .filter-group .date-range { display: flex; align-items: center; gap: 6px; }
+    .filter-group .date-range span { font-size: 12px; color: var(--text-secondary); }
+    .filter-actions { display: flex; gap: 8px; margin-left: auto; }
+    .filter-active {
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        padding: 10px 0 12px;
+    }
+    .filter-active-label {
+        font-size: 12px; color: var(--text-secondary); font-weight: 600;
+        flex-shrink: 0;
+    }
+    .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
+    .filter-chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: var(--accent-light); color: var(--accent);
+        border: 1px solid #dbe0fb; border-radius: 16px;
+        padding: 3px 6px 3px 10px; font-size: 12px; font-weight: 500;
+        max-width: 280px;
+    }
+    .filter-chip .chip-label { opacity: .7; font-size: 11px; }
+    .filter-chip .chip-value {
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        max-width: 180px;
+    }
+    .filter-chip .chip-x {
+        border: none; background: transparent; color: var(--accent);
+        cursor: pointer; font-size: 14px; line-height: 1;
+        padding: 0 2px; border-radius: 50%;
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 16px; height: 16px;
+    }
+    .filter-chip .chip-x:hover { background: rgba(79,70,229,.12); }
+    .filter-clear {
+        border: none; background: transparent; color: var(--red);
+        font-size: 12px; cursor: pointer; font-weight: 500;
+        padding: 4px 8px; border-radius: var(--radius-sm);
+        flex-shrink: 0;
+    }
+    .filter-clear:hover { background: var(--red-bg); }
+    .filter-empty {
+        font-size: 12px; color: var(--text-secondary); padding: 10px 0 12px;
+        border-bottom: 1px solid var(--border);
+    }
 
     /* ─── Badges ─── */
     .badge-status { font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 500; }
@@ -242,20 +319,49 @@
         <div class="card">
             <div class="card-header-custom">
                 <span>最新爬取资料</span>
-                <div style="display:flex;gap:8px;flex-wrap:wrap">
-                    <select class="select input-sm" id="dashFilterSite" onchange="loadDashItems(1)"><option value="">全部站点</option></select>
-                    <select class="select input-sm" id="dashFilterType" onchange="loadDashItems(1)">
-                        <option value="">全部类型</option><option value="招标公告">招标公告</option><option value="中标公告">中标公告</option>
-                    </select>
-                    <input class="input input-sm" id="dashFilterKeyword" placeholder="搜索关键词..." onkeyup="dashSearchDebounce()">
-                    <input class="input input-sm" id="dashFilterKwMatched" placeholder="匹配词..." onkeyup="dashSearchDebounce()">
-                    <input type="date" class="input input-sm" id="dashFilterDateFrom" title="发布日期从" onchange="loadDashItems(1)">
-                    <input type="date" class="input input-sm" id="dashFilterDateTo" title="发布日期至" onchange="loadDashItems(1)">
-                    <button class="btn-xs" onclick="resetDashFilter()">重置</button>
+                <span id="dashResultCount" style="font-size:12px;color:var(--text-secondary);font-weight:500"></span>
+            </div>
+            <div class="filter-panel">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>站点</label>
+                        <select id="dashFilterSite" onchange="applyFilter('dash')"><option value="">全部站点</option></select>
+                    </div>
+                    <div class="filter-group">
+                        <label>类型</label>
+                        <select id="dashFilterType" onchange="applyFilter('dash')">
+                            <option value="">全部类型</option><option value="招标公告">招标公告</option><option value="中标公告">中标公告</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>匹配词</label>
+                        <input id="dashFilterKwMatched" placeholder="如：水处理" oninput="dashSearchDebounce()" style="width:120px">
+                    </div>
+                    <div class="filter-group">
+                        <label>关键词</label>
+                        <input id="dashFilterKeyword" placeholder="标题 / 正文包含" oninput="dashSearchDebounce()" style="width:150px">
+                    </div>
+                    <div class="filter-group">
+                        <label>发布日期</label>
+                        <div class="date-range">
+                            <input type="date" id="dashFilterDateFrom" onchange="applyFilter('dash')">
+                            <span>至</span>
+                            <input type="date" id="dashFilterDateTo" onchange="applyFilter('dash')">
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn input-sm" onclick="resetDashFilter()">重置</button>
+                    </div>
+                </div>
+                <div class="filter-active" id="dashActiveFilters" style="display:none">
+                    <span class="filter-active-label">筛选条件</span>
+                    <div class="filter-chips" id="dashFilterChips"></div>
+                    <button class="filter-clear" onclick="clearFilters('dash')">清空全部</button>
                 </div>
             </div>
             <div class="card-body-custom">
                 <table class="table-custom">
+                    <colgroup><col style="width:36px"><col><col style="width:150px"><col style="width:88px"><col style="width:104px"><col style="width:112px"><col style="width:66px"></colgroup>
                     <thead><tr><th style="width:30px"><input type="checkbox" id="dashSelectAll" onchange="toggleSelectAll('dash')"></th><th class="sortable" onclick="toggleSort('dash','title')">标题<span class="sort-arrow" id="dashSortTitle"></span></th><th class="hide-mobile sortable" onclick="toggleSort('dash','site_name')">站点<span class="sort-arrow" id="dashSortSitename"></span></th><th class="hide-mobile sortable" onclick="toggleSort('dash','item_type')">类型<span class="sort-arrow" id="dashSortItemtype"></span></th><th class="hide-mobile sortable" onclick="toggleSort('dash','publish_date')">日期<span class="sort-arrow" id="dashSortPublishdate"></span></th><th class="hide-mobile sortable" onclick="toggleSort('dash','keywords_matched')">匹配词<span class="sort-arrow" id="dashSortKeywordsmatched"></span></th><th style="width:50px">操作</th></tr></thead>
                     <tbody id="dashItemsTable"><tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:24px">加载中...</td></tr></tbody>
                 </table>
@@ -273,20 +379,49 @@
         <div class="card">
             <div class="card-header-custom">
                 <span>爬取资料列表</span>
-                <div style="display:flex;gap:8px;flex-wrap:wrap">
-                    <select class="select input-sm" id="filterSite" onchange="loadItems(1)"><option value="">全部站点</option></select>
-                    <select class="select input-sm" id="filterType" onchange="loadItems(1)">
-                        <option value="">全部类型</option><option value="招标公告">招标公告</option><option value="中标公告">中标公告</option>
-                    </select>
-                    <input class="input input-sm" id="filterKeyword" placeholder="搜索关键词..." onkeyup="debounceSearch()">
-                    <input class="input input-sm" id="filterKwMatched" placeholder="匹配词..." onkeyup="debounceSearch()">
-                    <input type="date" class="input input-sm" id="filterDateFrom" title="发布日期从" onchange="loadItems(1)">
-                    <input type="date" class="input input-sm" id="filterDateTo" title="发布日期至" onchange="loadItems(1)">
-                    <button class="btn-xs" onclick="resetItemsFilter()">重置</button>
+                <span id="itemsResultCount" style="font-size:12px;color:var(--text-secondary);font-weight:500"></span>
+            </div>
+            <div class="filter-panel">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>站点</label>
+                        <select id="filterSite" onchange="applyFilter('items')"><option value="">全部站点</option></select>
+                    </div>
+                    <div class="filter-group">
+                        <label>类型</label>
+                        <select id="filterType" onchange="applyFilter('items')">
+                            <option value="">全部类型</option><option value="招标公告">招标公告</option><option value="中标公告">中标公告</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>匹配词</label>
+                        <input id="filterKwMatched" placeholder="如：水处理" oninput="debounceSearch()" style="width:120px">
+                    </div>
+                    <div class="filter-group">
+                        <label>关键词</label>
+                        <input id="filterKeyword" placeholder="标题 / 正文包含" oninput="debounceSearch()" style="width:150px">
+                    </div>
+                    <div class="filter-group">
+                        <label>发布日期</label>
+                        <div class="date-range">
+                            <input type="date" id="filterDateFrom" onchange="applyFilter('items')">
+                            <span>至</span>
+                            <input type="date" id="filterDateTo" onchange="applyFilter('items')">
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn input-sm" onclick="resetItemsFilter()">重置</button>
+                    </div>
+                </div>
+                <div class="filter-active" id="itemsActiveFilters" style="display:none">
+                    <span class="filter-active-label">筛选条件</span>
+                    <div class="filter-chips" id="itemsFilterChips"></div>
+                    <button class="filter-clear" onclick="clearFilters('items')">清空全部</button>
                 </div>
             </div>
             <div class="card-body-custom">
                 <table class="table-custom">
+                    <colgroup><col style="width:36px"><col><col style="width:150px"><col style="width:88px"><col style="width:104px"><col style="width:112px"><col style="width:66px"></colgroup>
                     <thead><tr><th style="width:30px"><input type="checkbox" id="itemsSelectAll" onchange="toggleSelectAll('items')"></th><th class="sortable" onclick="toggleSort('items','title')">标题<span class="sort-arrow" id="itemsSortTitle"></span></th><th class="hide-mobile sortable" onclick="toggleSort('items','site_name')">站点<span class="sort-arrow" id="itemsSortSitename"></span></th><th class="hide-mobile sortable" onclick="toggleSort('items','item_type')">类型<span class="sort-arrow" id="itemsSortItemtype"></span></th><th class="hide-mobile sortable" onclick="toggleSort('items','publish_date')">日期<span class="sort-arrow" id="itemsSortPublishdate"></span></th><th class="hide-mobile sortable" onclick="toggleSort('items','keywords_matched')">匹配词<span class="sort-arrow" id="itemsSortKeywordsmatched"></span></th><th style="width:50px">操作</th></tr></thead>
                     <tbody id="itemsTable"><tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:24px">加载中...</td></tr></tbody>
                 </table>
@@ -358,22 +493,51 @@
         <div class="card">
             <div class="card-header-custom">
                 <span>已归档记录</span>
-                <div style="display:flex;gap:8px;flex-wrap:wrap">
-                    <select class="select input-sm" id="archFilterSite" onchange="loadArchive(1)"><option value="">全部站点</option></select>
-                    <select class="select input-sm" id="archFilterType" onchange="loadArchive(1)">
-                        <option value="">全部类型</option><option value="招标公告">招标公告</option><option value="中标公告">中标公告</option>
-                    </select>
-                    <input class="input input-sm" id="archFilterKeyword" placeholder="搜索关键词..." onkeyup="archSearchDebounce()">
-                    <input class="input input-sm" id="archFilterKwMatched" placeholder="匹配词..." onkeyup="archSearchDebounce()">
-                    <input type="date" class="input input-sm" id="archFilterDateFrom" title="发布日期从" onchange="loadArchive(1)">
-                    <input type="date" class="input input-sm" id="archFilterDateTo" title="发布日期至" onchange="loadArchive(1)">
-                    <button class="btn-xs" onclick="resetArchFilter()">重置</button>
+                <span id="archResultCount" style="font-size:12px;color:var(--text-secondary);font-weight:500"></span>
+            </div>
+            <div class="filter-panel">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>站点</label>
+                        <select id="archFilterSite" onchange="applyFilter('arch')"><option value="">全部站点</option></select>
+                    </div>
+                    <div class="filter-group">
+                        <label>类型</label>
+                        <select id="archFilterType" onchange="applyFilter('arch')">
+                            <option value="">全部类型</option><option value="招标公告">招标公告</option><option value="中标公告">中标公告</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>匹配词</label>
+                        <input id="archFilterKwMatched" placeholder="如：水处理" oninput="archSearchDebounce()" style="width:120px">
+                    </div>
+                    <div class="filter-group">
+                        <label>关键词</label>
+                        <input id="archFilterKeyword" placeholder="标题 / 正文包含" oninput="archSearchDebounce()" style="width:150px">
+                    </div>
+                    <div class="filter-group">
+                        <label>发布日期</label>
+                        <div class="date-range">
+                            <input type="date" id="archFilterDateFrom" onchange="applyFilter('arch')">
+                            <span>至</span>
+                            <input type="date" id="archFilterDateTo" onchange="applyFilter('arch')">
+                        </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn input-sm" onclick="resetArchFilter()">重置</button>
+                    </div>
+                </div>
+                <div class="filter-active" id="archActiveFilters" style="display:none">
+                    <span class="filter-active-label">筛选条件</span>
+                    <div class="filter-chips" id="archFilterChips"></div>
+                    <button class="filter-clear" onclick="clearFilters('arch')">清空全部</button>
                 </div>
             </div>
             <div class="card-body-custom">
                 <table class="table-custom">
+                    <colgroup><col style="width:36px"><col><col style="width:150px"><col style="width:88px"><col style="width:104px"><col style="width:136px"><col style="width:88px"></colgroup>
                     <thead><tr><th style="width:30px"><input type="checkbox" id="archSelectAll" onchange="toggleSelectAll('arch')"></th><th class="sortable" onclick="toggleSort('arch','title')">标题<span class="sort-arrow" id="archSortTitle"></span></th><th class="hide-mobile sortable" onclick="toggleSort('arch','site_name')">站点<span class="sort-arrow" id="archSortSitename"></span></th><th class="hide-mobile sortable" onclick="toggleSort('arch','item_type')">类型<span class="sort-arrow" id="archSortItemtype"></span></th><th class="hide-mobile sortable" onclick="toggleSort('arch','publish_date')">日期<span class="sort-arrow" id="archSortPublishdate"></span></th><th class="hide-mobile sortable" onclick="toggleSort('arch','archived_at')">归档时间<span class="sort-arrow" id="archSortArchivedat"></span></th><th style="width:80px">操作</th></tr></thead>
-                    <tbody id="archiveTable"><tr><td colspan="6" style="text-align:center;color:var(--text-secondary);padding:24px">加载中...</td></tr></tbody>
+                    <tbody id="archiveTable"><tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:24px">加载中...</td></tr></tbody>
                 </table>
                 <div class="pagination-bar" id="archivePagination"></div>
                 <div class="batch-bar" id="archBatchBar" style="display:none">
@@ -491,6 +655,72 @@ function resetArchFilter() {
     loadArchive(1);
 }
 
+// ─── Active Filter Chips（多条件筛选条，可单独删除） ───
+const FILTER_IDS = {
+    dash:  {site:'dashFilterSite', type:'dashFilterType', kwMatched:'dashFilterKwMatched', keyword:'dashFilterKeyword', dateFrom:'dashFilterDateFrom', dateTo:'dashFilterDateTo'},
+    items: {site:'filterSite', type:'filterType', kwMatched:'filterKwMatched', keyword:'filterKeyword', dateFrom:'filterDateFrom', dateTo:'filterDateTo'},
+    arch:  {site:'archFilterSite', type:'archFilterType', kwMatched:'archFilterKwMatched', keyword:'archFilterKeyword', dateFrom:'archFilterDateFrom', dateTo:'archFilterDateTo'},
+};
+
+function collectFilters(prefix) {
+    const ids = FILTER_IDS[prefix] || {};
+    return [
+        {key:'site',     label:'站点',   id: ids.site,     get: el => el.options[el.selectedIndex].text},
+        {key:'type',     label:'类型',   id: ids.type,     get: el => el.options[el.selectedIndex].text},
+        {key:'kwMatched',label:'匹配词', id: ids.kwMatched},
+        {key:'keyword',  label:'关键词', id: ids.keyword},
+        {key:'dateFrom', label:'起始日期', id: ids.dateFrom},
+        {key:'dateTo',   label:'截止日期', id: ids.dateTo},
+    ].map(c => {
+        const el = c.id ? $('#'+c.id) : null;
+        const value = el ? el.value : '';
+        let display = value;
+        if (el && c.get) display = c.get(el);
+        return {key:c.key, label:c.label, value:value, display: display === '' ? value : display};
+    }).filter(c => c.value !== '');
+}
+
+function renderFilterChips(prefix) {
+    const bar = $('#'+prefix+'ActiveFilters');
+    const box = $('#'+prefix+'FilterChips');
+    if (!bar || !box) return;
+    const conds = collectFilters(prefix);
+    if (conds.length === 0) {
+        bar.style.display = 'none';
+        box.innerHTML = '';
+        return;
+    }
+    bar.style.display = 'flex';
+    box.innerHTML = conds.map(c =>
+        `<span class="filter-chip" title="${esc(c.label)}: ${esc(c.display)}">
+            <span class="chip-label">${esc(c.label)}</span>
+            <span class="chip-value">${esc(c.display)}</span>
+            <button class="chip-x" onclick="removeFilterChip('${prefix}','${c.key}')">×</button>
+        </span>`
+    ).join('');
+}
+
+function removeFilterChip(prefix, key) {
+    const ids = FILTER_IDS[prefix] || {};
+    const el = ids[key] ? $('#'+ids[key]) : null;
+    if (el) el.value = '';
+    if (prefix === 'dash') loadDashItems(1);
+    else if (prefix === 'items') loadItems(1);
+    else loadArchive(1);
+}
+
+function clearFilters(prefix) {
+    if (prefix === 'dash') resetDashFilter();
+    else if (prefix === 'items') resetItemsFilter();
+    else resetArchFilter();
+}
+
+function applyFilter(prefix) {
+    if (prefix === 'dash') loadDashItems(1);
+    else if (prefix === 'items') loadItems(1);
+    else loadArchive(1);
+}
+
 function toast(msg, type) {
     type = type || 'info';
     const el = document.createElement('div');
@@ -574,24 +804,26 @@ function loadDashItems(page) {
             $('#dashItemsTable').innerHTML = d.items.map(i =>
                 `<tr>
                     <td class="checkbox-cell"><input type="checkbox" class="dash-check" value="${i.id}" onchange="updateBatchBar('dash')"></td>
-                    <td><a href="${esc(i.url)}" target="_blank" title="${esc(i.title)}">${esc((i.title||'').substring(0,60))}${(i.title||'').length>60?'...':''}</a></td>
-                    <td class="hide-mobile" style="font-size:12px">${esc(i.site_name)}</td>
-                    <td class="hide-mobile"><span class="badge-status badge-info">${esc(i.item_type||'-')}</span></td>
-                    <td class="hide-mobile" style="font-size:12px;color:var(--text-secondary)">${esc(i.publish_date||'-')}</td>
-                    <td class="hide-mobile" style="font-size:12px;color:var(--text-secondary)">${esc(i.keywords_matched||'-')}</td>
+                    <td class="cell-ellipsis"><a href="${esc(i.url)}" target="_blank" title="${esc(i.title)}">${esc(i.title||'-')}</a></td>
+                    <td class="hide-mobile cell-ellipsis" style="font-size:12px" title="${esc(i.site_name)}">${esc(i.site_name||'-')}</td>
+                    <td class="hide-mobile cell-ellipsis"><span class="badge-status badge-info" title="${esc(i.item_type||'-')}">${esc(i.item_type||'-')}</span></td>
+                    <td class="hide-mobile cell-ellipsis" style="font-size:12px;color:var(--text-secondary)">${esc(i.publish_date||'-')}</td>
+                    <td class="hide-mobile cell-ellipsis" style="font-size:12px;color:var(--text-secondary)" title="${esc(i.keywords_matched||'')}">${esc(i.keywords_matched||'-')}</td>
                     <td><button class="btn-xs" onclick="archiveItem(${i.id},'dash')">归档</button></td>
                 </tr>`
             ).join('');
             updateBatchBar('dash');
         }
+        $('#dashResultCount').textContent = '共 ' + d.total + ' 条';
         renderPagination('dashItemsPagination', dashPage, dashTotalPages, loadDashItems);
         updateArrows('dash', ['title','site_name','item_type','publish_date','keywords_matched']);
+        renderFilterChips('dash');
     }).catch(e => toast(e.message, 'error'));
 }
 
 function dashSearchDebounce() {
     clearTimeout(dashSearchTimer);
-    dashSearchTimer = setTimeout(() => loadDashItems(1), 400);
+    dashSearchTimer = setTimeout(() => { loadDashItems(1); renderFilterChips('dash'); }, 400);
 }
 
 // ─── Items ───
@@ -621,25 +853,27 @@ function loadItems(page) {
             $('#itemsTable').innerHTML = d.items.map(i =>
                 `<tr>
                     <td class="checkbox-cell"><input type="checkbox" class="items-check" value="${i.id}" onchange="updateBatchBar('items')"></td>
-                    <td><a href="${esc(i.url)}" target="_blank" title="${esc(i.title)}">${esc((i.title||'').substring(0,60))}${(i.title||'').length>60?'...':''}</a></td>
-                    <td class="hide-mobile" style="font-size:12px">${esc(i.site_name)}</td>
-                    <td class="hide-mobile"><span class="badge-status badge-info">${esc(i.item_type||'-')}</span></td>
-                    <td class="hide-mobile" style="font-size:12px;color:var(--text-secondary)">${esc(i.publish_date||'-')}</td>
-                    <td class="hide-mobile" style="font-size:12px;color:var(--text-secondary)">${esc(i.keywords_matched||'-')}</td>
+                    <td class="cell-ellipsis"><a href="${esc(i.url)}" target="_blank" title="${esc(i.title)}">${esc(i.title||'-')}</a></td>
+                    <td class="hide-mobile cell-ellipsis" style="font-size:12px" title="${esc(i.site_name)}">${esc(i.site_name||'-')}</td>
+                    <td class="hide-mobile cell-ellipsis"><span class="badge-status badge-info" title="${esc(i.item_type||'-')}">${esc(i.item_type||'-')}</span></td>
+                    <td class="hide-mobile cell-ellipsis" style="font-size:12px;color:var(--text-secondary)">${esc(i.publish_date||'-')}</td>
+                    <td class="hide-mobile cell-ellipsis" style="font-size:12px;color:var(--text-secondary)" title="${esc(i.keywords_matched||'')}">${esc(i.keywords_matched||'-')}</td>
                     <td><button class="btn-xs" onclick="archiveItem(${i.id},'items')">归档</button></td>
                 </tr>`
             ).join('');
             updateBatchBar('items');
         }
 
+        $('#itemsResultCount').textContent = '共 ' + d.total + ' 条';
         renderPagination('itemsPagination', itemsPage, itemsTotalPages, loadItems);
         updateArrows('items', ['title','site_name','item_type','publish_date','keywords_matched']);
+        renderFilterChips('items');
     }).catch(e => toast(e.message, 'error'));
 }
 
 function debounceSearch() {
     clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => loadItems(1), 400);
+    searchTimer = setTimeout(() => { loadItems(1); renderFilterChips('items'); }, 400);
 }
 
 function renderPagination(id, page, total, fn) {
@@ -987,11 +1221,11 @@ function loadArchive(page) {
             $('#archiveTable').innerHTML = d.items.map(i =>
                 `<tr>
                     <td class="checkbox-cell"><input type="checkbox" class="arch-check" value="${i.id}" onchange="updateBatchBar('arch')"></td>
-                    <td><a href="${esc(i.url)}" target="_blank" title="${esc(i.title)}">${esc((i.title||'').substring(0,60))}${(i.title||'').length>60?'...':''}</a></td>
-                    <td class="hide-mobile" style="font-size:12px">${esc(i.site_name)}</td>
-                    <td class="hide-mobile"><span class="badge-status badge-info">${esc(i.item_type||'-')}</span></td>
-                    <td class="hide-mobile" style="font-size:11px;color:var(--text-secondary)">${esc(i.publish_date||'-')}</td>
-                    <td class="hide-mobile" style="font-size:11px;color:var(--text-secondary)">${esc(i.archived_at||'-')}</td>
+                    <td class="cell-ellipsis"><a href="${esc(i.url)}" target="_blank" title="${esc(i.title)}">${esc(i.title||'-')}</a></td>
+                    <td class="hide-mobile cell-ellipsis" style="font-size:12px" title="${esc(i.site_name)}">${esc(i.site_name||'-')}</td>
+                    <td class="hide-mobile cell-ellipsis"><span class="badge-status badge-info" title="${esc(i.item_type||'-')}">${esc(i.item_type||'-')}</span></td>
+                    <td class="hide-mobile cell-ellipsis" style="font-size:11px;color:var(--text-secondary)">${esc(i.publish_date||'-')}</td>
+                    <td class="hide-mobile cell-ellipsis" style="font-size:11px;color:var(--text-secondary)" title="${esc(i.archived_at||'')}">${esc(i.archived_at||'-')}</td>
                     <td style="white-space:nowrap">
                         <button class="btn-xs primary" onclick="unarchiveItem(${i.id})">恢复</button>
                         <button class="btn-xs danger" onclick="confirmDeleteSingle(${i.id})">×</button>
@@ -1000,14 +1234,16 @@ function loadArchive(page) {
             ).join('');
             updateBatchBar('arch');
         }
+        $('#archResultCount').textContent = '共 ' + d.total + ' 条';
         renderPagination('archivePagination', archPage, archTotalPages, loadArchive);
         updateArrows('arch', ['title','site_name','item_type','publish_date','archived_at']);
+        renderFilterChips('arch');
     }).catch(e => toast(e.message, 'error'));
 }
 
 function archSearchDebounce() {
     clearTimeout(archSearchTimer);
-    archSearchTimer = setTimeout(() => loadArchive(1), 400);
+    archSearchTimer = setTimeout(() => { loadArchive(1); renderFilterChips('arch'); }, 400);
 }
 
 // ─── Batch Operations ───
