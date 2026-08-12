@@ -1,0 +1,26 @@
+# 环境变量
+.env
+
+# 数据与运行产物（数据库、浏览器会话、备份、日志、调试文件等）
+data/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+.trae/
+*.swp
+*.swo
+*~
+
+# 系统
+.DS_Store
+Thumbs.db

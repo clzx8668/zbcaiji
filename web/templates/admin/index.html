@@ -1,0 +1,66 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+<div class="container-fluid">
+    <h3 class="mb-4">招标爬虫系统概览</h3>
+
+    <!-- 统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <a href="{{ url_for('crawlitem.index_view') }}" class="text-decoration-none">
+                <div class="card text-white bg-primary">
+                    <div class="card-body text-center">
+                        <h1 class="display-4">{{ total_items }}</h1>
+                        <p class="card-text">总条目数</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body text-center">
+                    <h1 class="display-4">{{ week_new }}</h1>
+                    <p class="card-text">本周新增</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <a href="{{ url_for('crawltask.index_view') }}" class="text-decoration-none">
+                <div class="card text-white bg-warning">
+                    <div class="card-body text-center">
+                        <h1 class="display-4">{{ recent_tasks }}</h1>
+                        <p class="card-text">近7日任务</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body text-center">
+                    <h1 class="display-4">{{ active_sites }}</h1>
+                    <p class="card-text">活跃站点</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 快捷操作 -->
+    <div class="row">
+        <div class="col-md-4">
+            <a href="{{ url_for('crawlitem.index_view') }}" class="btn btn-outline-primary btn-block mb-2">
+                📋 浏览爬取资料
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{{ url_for('task_control.index') }}" class="btn btn-outline-success btn-block mb-2">
+                🚀 任务管控中心
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{{ url_for('logs.index') }}" class="btn btn-outline-secondary btn-block mb-2">
+                📄 查看执行日志
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

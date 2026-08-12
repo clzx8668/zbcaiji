@@ -1,0 +1,1026 @@
+{% extends 'admin/master.html' %}
+
+{% block head_css %}
+{{ super() }}
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    :root {
+        --bg: #f8f9fb;
+        --card-bg: #ffffff;
+        --border: #e9ecef;
+        --text: #1a1a2e;
+        --text-secondary: #6c757d;
+        --accent: #4f46e5;
+        --accent-light: #eef2ff;
+        --green: #10b981;
+        --green-bg: #ecfdf5;
+        --red: #ef4444;
+        --red-bg: #fef2f2;
+        --amber: #f59e0b;
+        --amber-bg: #fffbeb;
+        --radius: 10px;
+        --radius-sm: 6px;
+        --shadow: 0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+        --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+    }
+
+    * { box-sizing: border-box; }
+    body { background: var(--bg); font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
+
+    /* ─── Top Nav ─── */
+    .spa-nav {
+        background: var(--card-bg);
+        border-bottom: 1px solid var(--border);
+        position: sticky; top: 0; z-index: 100;
+        padding: 0 16px; height: 52px;
+        display: flex; align-items: center; gap: 4px;
+        box-shadow: var(--shadow);
+    }
+    .spa-nav .brand {
+        font-weight: 700; font-size: 15px; color: var(--text);
+        margin-right: 24px; white-space: nowrap;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .spa-nav .brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+    .spa-nav .nav-tabs-inline {
+        display: flex; gap: 2px; flex: 1; overflow-x: auto;
+        -ms-overflow-style: none; scrollbar-width: none;
+    }
+    .spa-nav .nav-tabs-inline::-webkit-scrollbar { display: none; }
+    .spa-nav .nav-item {
+        display: flex; align-items: center; gap: 6px;
+        padding: 8px 14px; border-radius: var(--radius-sm);
+        font-size: 13px; font-weight: 500; color: var(--text-secondary);
+        cursor: pointer; white-space: nowrap; transition: all .15s;
+        border: none; background: none;
+    }
+    .spa-nav .nav-item:hover { background: var(--accent-light); color: var(--accent); }
+    .spa-nav .nav-item.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+    .spa-nav .nav-item .badge-count {
+        background: var(--accent); color: #fff; font-size: 10px;
+        padding: 1px 6px; border-radius: 10px; font-weight: 600;
+    }
+
+    /* ─── Layout ─── */
+    .spa-main { max-width: 1280px; margin: 0 auto; padding: 20px 16px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; animation: fadeIn .2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ─── Cards ─── */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px; }
+    .stat-card {
+        background: var(--card-bg); border-radius: var(--radius);
+        padding: 18px 20px; box-shadow: var(--shadow);
+        display: flex; align-items: center; gap: 14px;
+        transition: box-shadow .15s;
+    }
+    .stat-card:hover { box-shadow: var(--shadow-md); }
+    .stat-card .icon { width: 42px; height: 42px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .stat-card .info .value { font-size: 26px; font-weight: 700; color: var(--text); line-height: 1.2; }
+    .stat-card .info .label { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+    .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 18px; }
+    .card-header-custom {
+        padding: 14px 20px; border-bottom: 1px solid var(--border);
+        font-weight: 600; font-size: 14px; display: flex; align-items: center; justify-content: space-between;
+        flex-wrap: wrap; gap: 10px;
+    }
+    .card-body-custom { padding: 0; }
+
+    /* ─── Table ─── */
+    .table-custom { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .table-custom th {
+        text-align: left; padding: 10px 16px; font-size: 11px; font-weight: 600;
+        text-transform: uppercase; letter-spacing: .5px; color: var(--text-secondary);
+        background: #fafbfc; border-bottom: 1px solid var(--border);
+    }
+    .table-custom td { padding: 10px 16px; border-bottom: 1px solid #f1f3f5; vertical-align: middle; }
+    .table-custom tr:hover td { background: #fafbfc; }
+    .table-custom a { color: var(--accent); text-decoration: none; font-weight: 500; }
+    .table-custom a:hover { text-decoration: underline; }
+
+    /* ─── Badges ─── */
+    .badge-status { font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 500; }
+    .badge-success { background: var(--green-bg); color: var(--green); }
+    .badge-danger { background: var(--red-bg); color: var(--red); }
+    .badge-warning { background: var(--amber-bg); color: var(--amber); }
+    .badge-info { background: var(--accent-light); color: var(--accent); }
+
+    /* ─── Buttons ─── */
+    .btn-xs { padding: 3px 10px; font-size: 11px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: #fff; cursor: pointer; font-weight: 500; transition: all .15s; }
+    .btn-xs:hover { background: #f5f5f5; }
+    .btn-xs.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-xs.primary:hover { opacity: .85; }
+    .btn-xs.danger { color: var(--red); border-color: var(--red); }
+    .btn-xs.danger:hover { background: var(--red-bg); }
+    .btn-xs.green { background: var(--green); color: #fff; border-color: var(--green); }
+    .btn-xs.green:hover { opacity: .85; }
+
+    .btn { padding: 7px 16px; font-size: 13px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: #fff; cursor: pointer; font-weight: 500; transition: all .15s; }
+    .btn:hover { background: #f5f5f5; }
+    .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn.primary:hover { opacity: .85; }
+    .btn.green { background: var(--green); color: #fff; border-color: var(--green); }
+    .btn.green:hover { opacity: .85; }
+    .btn.danger { background: var(--red); color: #fff; border-color: var(--red); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ─── Inputs ─── */
+    .input { padding: 7px 11px; font-size: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none; background: #fff; }
+    .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,.1); }
+    .input-sm { padding: 4px 8px; font-size: 12px; }
+    .select { padding: 7px 11px; font-size: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fff; outline: none; cursor: pointer; }
+
+    /* ─── Pagination ─── */
+    .pagination-bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; flex-wrap: wrap; gap: 10px; }
+    .pagination-bar .pages { display: flex; gap: 4px; }
+    .pagination-bar .page-btn { width: 32px; height: 32px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: #fff; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+    .pagination-bar .page-btn:hover { background: #f5f5f5; }
+    .pagination-bar .page-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .pagination-bar .page-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* ─── Toast ─── */
+    .toast-container { position: fixed; top: 68px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .toast-msg {
+        background: var(--card-bg); border-radius: var(--radius-sm); padding: 12px 18px;
+        box-shadow: var(--shadow-md); font-size: 13px; border-left: 4px solid var(--accent);
+        animation: slideIn .25s ease; max-width: 360px;
+    }
+    .toast-msg.success { border-left-color: var(--green); }
+    .toast-msg.error { border-left-color: var(--red); }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+    /* ─── Modal ─── */
+    .modal-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 200;
+        display: flex; align-items: center; justify-content: center;
+        animation: fadeIn .15s ease;
+    }
+    .modal-box {
+        background: var(--card-bg); border-radius: var(--radius); padding: 24px;
+        max-width: 460px; width: 90%; box-shadow: var(--shadow-md);
+    }
+    .modal-box h4 { margin: 0 0 16px; font-size: 16px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
+    .form-group .input, .form-group .select { width: 100%; }
+    .form-row { display: flex; gap: 12px; }
+    .form-row .form-group { flex: 1; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+    /* ─── Log viewer ─── */
+    .log-viewer {
+        background: #1a1a2e; color: #e2e8f0; font-family: 'SF Mono','Fira Code',monospace;
+        font-size: 12px; padding: 14px; border-radius: var(--radius-sm);
+        max-height: 480px; overflow: auto; white-space: pre-wrap; word-break: break-all;
+        line-height: 1.6;
+    }
+
+    /* ─── Cell edit ─── */
+    .cell-input { width: 100%; border: 1px solid var(--accent); border-radius: 4px; padding: 2px 6px; font-size: 12px; outline: none; }
+    .row-editing { background: #fffbeb !important; }
+
+    /* ─── Batch bar ─── */
+    .batch-bar {
+        padding: 10px 16px; border-top: 1px solid var(--border);
+        background: var(--accent-light); display: flex; align-items: center; gap: 12px;
+        font-size: 12px; color: var(--accent); font-weight: 500;
+    }
+    .batch-bar .btn-xs { margin: 0; }
+    .checkbox-cell { text-align: center; width: 30px; }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 768px) {
+        .spa-nav { padding: 0 8px; height: 46px; gap: 1px; }
+        .spa-nav .brand { font-size: 13px; margin-right: 10px; }
+        .spa-nav .nav-item { padding: 6px 10px; font-size: 11px; gap: 4px; }
+        .spa-main { padding: 12px 8px; }
+        .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .stat-card { padding: 12px 14px; gap: 10px; }
+        .stat-card .icon { width: 32px; height: 32px; font-size: 14px; }
+        .stat-card .info .value { font-size: 20px; }
+        .table-custom { font-size: 11px; }
+        .table-custom th, .table-custom td { padding: 8px 8px; }
+        .card-header-custom { padding: 10px 12px; }
+        .form-row { flex-direction: column; gap: 0; }
+        .pagination-bar { flex-direction: column; align-items: stretch; }
+        .hide-mobile { display: none !important; }
+    }
+    @media (max-width: 480px) {
+        .spa-nav .nav-item span.tab-label { display: none; }
+        .spa-nav .nav-item { padding: 6px 10px; font-size: 14px; }
+        .stat-grid { grid-template-columns: 1fr 1fr; }
+        .btn { font-size: 12px; padding: 6px 12px; }
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<!-- Top Navigation -->
+<nav class="spa-nav">
+    <div class="brand"><div class="dot"></div>ZB Caiji</div>
+    <div class="nav-tabs-inline" id="navTabs">
+        <button class="nav-item active" data-tab="dashboard"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span class="tab-label">概览</span></button>
+        <button class="nav-item" data-tab="items"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="tab-label">爬取资料</span><span class="badge-count" id="itemsCount"></span></button>
+        <button class="nav-item" data-tab="control"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="tab-label">任务管控</span></button>
+        <button class="nav-item" data-tab="logs"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 17"/><line x1="12" y1="17" x2="20" y2="17"/></svg><span class="tab-label">日志</span></button>
+        <button class="nav-item" data-tab="history"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 8 14"/></svg><span class="tab-label">任务记录</span></button>
+        <button class="nav-item" data-tab="archive"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg><span class="tab-label">归档</span><span class="badge-count" id="archiveCount"></span></button>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<div class="spa-main">
+
+    <!-- Tab: Dashboard -->
+    <div class="tab-panel active" id="tab-dashboard">
+        <div class="stat-grid" id="statCards"></div>
+        <div class="card">
+            <div class="card-header-custom">
+                <span>最新爬取资料</span>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <select class="select input-sm" id="dashFilterSite" onchange="loadDashItems(1)"><option value="">全部站点</option></select>
+                    <select class="select input-sm" id="dashFilterType" onchange="loadDashItems(1)">
+                        <option value="">全部类型</option><option value="招标公告">招标公告</option><option value="中标公告">中标公告</option>
+                    </select>
+                    <input class="input input-sm" id="dashFilterKeyword" placeholder="搜索关键词..." onkeyup="dashSearchDebounce()">
+                </div>
+            </div>
+            <div class="card-body-custom">
+                <table class="table-custom">
+                    <thead><tr><th style="width:30px"><input type="checkbox" id="dashSelectAll" onchange="toggleSelectAll('dash')"></th><th>标题</th><th class="hide-mobile">站点</th><th class="hide-mobile">类型</th><th class="hide-mobile">日期</th><th class="hide-mobile">匹配词</th><th style="width:50px">操作</th></tr></thead>
+                    <tbody id="dashItemsTable"><tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:24px">加载中...</td></tr></tbody>
+                </table>
+                <div class="pagination-bar" id="dashItemsPagination"></div>
+                <div class="batch-bar" id="dashBatchBar" style="display:none">
+                    <span id="dashSelectedCount">已选 0 条</span>
+                    <button class="btn-xs primary" onclick="batchArchive('dash')">批量归档</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Items -->
+    <div class="tab-panel" id="tab-items">
+        <div class="card">
+            <div class="card-header-custom">
+                <span>爬取资料列表</span>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <select class="select input-sm" id="filterSite" onchange="loadItems(1)"><option value="">全部站点</option></select>
+                    <select class="select input-sm" id="filterType" onchange="loadItems(1)">
+                        <option value="">全部类型</option><option value="招标公告">招标公告</option><option value="中标公告">中标公告</option>
+                    </select>
+                    <input class="input input-sm" id="filterKeyword" placeholder="搜索关键词..." onkeyup="debounceSearch()">
+                </div>
+            </div>
+            <div class="card-body-custom">
+                <table class="table-custom">
+                    <thead><tr><th style="width:30px"><input type="checkbox" id="itemsSelectAll" onchange="toggleSelectAll('items')"></th><th>标题</th><th class="hide-mobile">站点</th><th class="hide-mobile">类型</th><th class="hide-mobile">日期</th><th class="hide-mobile">匹配词</th><th style="width:50px">操作</th></tr></thead>
+                    <tbody id="itemsTable"><tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:24px">加载中...</td></tr></tbody>
+                </table>
+                <div class="pagination-bar" id="itemsPagination"></div>
+                <div class="batch-bar" id="itemsBatchBar" style="display:none">
+                    <span id="itemsSelectedCount">已选 0 条</span>
+                    <button class="btn-xs primary" onclick="batchArchive('items')">批量归档</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Task Control -->
+    <div class="tab-panel" id="tab-control">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+            <span id="schedDot" style="width:10px;height:10px;border-radius:50%;background:#ef4444;flex-shrink:0"></span>
+            <span id="schedText" style="font-size:13px;font-weight:500">调度器未启动</span>
+            <button class="btn green input-sm" id="btnSchedStart" onclick="schedStart()">启动</button>
+            <button class="btn danger input-sm" id="btnSchedStop" onclick="schedStop()" disabled>停止</button>
+            <button class="btn input-sm" onclick="loadTaskControl()" style="margin-left:auto">刷新</button>
+        </div>
+        <div class="card">
+            <div class="card-header-custom">
+                <span>站点任务 (<span id="siteJobCount">0</span>)</span>
+                <button class="btn primary input-sm" onclick="showSiteModal()">+ 新增站点</button>
+            </div>
+            <div class="card-body-custom" id="controlTableWrapper">
+                <table class="table-custom">
+                    <thead><tr><th>站点</th><th class="hide-mobile">地址</th><th>关键词</th><th>Cron</th><th>下次执行</th><th class="hide-mobile">回溯</th><th>操作</th></tr></thead>
+                    <tbody id="controlTable"><tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:24px">加载中...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Logs -->
+    <div class="tab-panel" id="tab-logs">
+        <div class="card">
+            <div class="card-header-custom">
+                <span>执行日志</span>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <select class="select input-sm" id="logFileSelect" onchange="loadLogs()"></select>
+                    <input class="input input-sm" id="logKeyword" placeholder="搜索关键词..." style="width:140px" onkeyup="debounceLogSearch()">
+                    <select class="select input-sm" id="logLines" onchange="loadLogs()">
+                        <option value="100">100行</option><option value="200" selected>200行</option><option value="500">500行</option><option value="1000">1000行</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body-custom"><div class="log-viewer" id="logContent">加载中...</div></div>
+        </div>
+    </div>
+
+    <!-- Tab: Task History -->
+    <div class="tab-panel" id="tab-history">
+        <div class="card">
+            <div class="card-header-custom"><span>任务执行记录</span></div>
+            <div class="card-body-custom">
+                <table class="table-custom">
+                    <thead><tr><th>站点</th><th>状态</th><th>执行时间</th><th class="hide-mobile">采集数</th><th class="hide-mobile">新增</th><th>错误</th></tr></thead>
+                    <tbody id="taskHistoryTable"><tr><td colspan="6" style="text-align:center;color:var(--text-secondary);padding:24px">加载中...</td></tr></tbody>
+                </table>
+                <div class="pagination-bar" id="taskHistoryPagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Archive -->
+    <div class="tab-panel" id="tab-archive">
+        <div class="card">
+            <div class="card-header-custom">
+                <span>已归档记录</span>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <select class="select input-sm" id="archFilterSite" onchange="loadArchive(1)"><option value="">全部站点</option></select>
+                    <select class="select input-sm" id="archFilterType" onchange="loadArchive(1)">
+                        <option value="">全部类型</option><option value="招标公告">招标公告</option><option value="中标公告">中标公告</option>
+                    </select>
+                    <input class="input input-sm" id="archFilterKeyword" placeholder="搜索关键词..." onkeyup="archSearchDebounce()">
+                </div>
+            </div>
+            <div class="card-body-custom">
+                <table class="table-custom">
+                    <thead><tr><th style="width:30px"><input type="checkbox" id="archSelectAll" onchange="toggleSelectAll('arch')"></th><th>标题</th><th class="hide-mobile">站点</th><th class="hide-mobile">类型</th><th class="hide-mobile">归档时间</th><th style="width:80px">操作</th></tr></thead>
+                    <tbody id="archiveTable"><tr><td colspan="6" style="text-align:center;color:var(--text-secondary);padding:24px">加载中...</td></tr></tbody>
+                </table>
+                <div class="pagination-bar" id="archivePagination"></div>
+                <div class="batch-bar" id="archBatchBar" style="display:none">
+                    <span id="archSelectedCount">已选 0 条</span>
+                    <button class="btn-xs primary" onclick="batchUnarchive()">取消归档</button>
+                    <button class="btn-xs danger" onclick="batchDelete()">批量删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Site Modal -->
+<div class="modal-overlay" id="siteModalOverlay" style="display:none" onclick="if(event.target===this)closeSiteModal()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <h4 id="siteModalTitle">新增站点</h4>
+        <input type="hidden" id="modalMode" value="add">
+        <input type="hidden" id="modalOrigName" value="">
+        <div class="form-group"><label>站点名称 *</label><input class="input" id="mSiteName" placeholder="如：中国政府采购网"></div>
+        <div class="form-group"><label>站点地址 *</label><input class="input" id="mSiteUrl" placeholder="https://..."></div>
+        <div class="form-group"><label>搜索关键词</label><input class="input" id="mKeywords" placeholder="逗号分隔多个关键词"></div>
+        <div class="form-row">
+            <div class="form-group"><label>Cron 表达式</label><input class="input" id="mCron" value="0 9 * * *"></div>
+            <div class="form-group"><label>回溯天数</label><input class="input" id="mDaysBack" type="number" value="7" min="1"></div>
+        </div>
+        <div class="form-group"><label>搜索类型</label><select class="select" id="mSearchType"><option value="both">招标+中标</option><option value="zhaobiao">仅招标</option><option value="zhongbiao">仅中标</option></select></div>
+        <div class="form-group"><label>搜索URL模板</label><input class="input" id="mSearchUrl" placeholder="{keyword} {start_date}"></div>
+        <div class="form-group"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="mEnabled" checked style="width:16px;height:16px"> 启用此站点</label></div>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeSiteModal()">取消</button>
+            <button class="btn primary" id="btnSaveSite" onclick="saveSite()">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-overlay" id="deleteModalOverlay" style="display:none" onclick="if(event.target===this)closeDeleteModal()">
+    <div class="modal-box" onclick="event.stopPropagation()" style="max-width:340px">
+        <h4>确认删除</h4>
+        <p id="deleteModalText" style="font-size:13px;color:var(--text-secondary)">确定要删除站点 <strong id="deleteSiteName"></strong>？此操作不可恢复。</p>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeDeleteModal()">取消</button>
+            <button class="btn danger" id="btnConfirmDelete" onclick="doDeleteSite()">确认删除</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block tail_js %}
+{{ super() }}
+<script>
+// ─── State ───
+let currentTab = 'dashboard';
+let editingSite = null;
+let deleteTarget = null;
+let itemsPage = 1, itemsTotalPages = 1;
+let dashPage = 1, dashTotalPages = 1;
+let archPage = 1, archTotalPages = 1;
+let tasksPage = 1, tasksTotalPages = 1;
+let searchTimer = null, logSearchTimer = null, dashSearchTimer = null, archSearchTimer = null;
+let taskControlInterval = null;
+
+// ─── Helpers ───
+function $(sel) { return document.querySelector(sel); }
+function $$(sel) { return document.querySelectorAll(sel); }
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(d) { if(!d) return '-'; return d; }
+function safeId(n) { return (n||'').replace(/[^a-zA-Z0-9\u4e00-\u9fff_-]/g,'_'); }
+
+function toast(msg, type) {
+    type = type || 'info';
+    const el = document.createElement('div');
+    el.className = 'toast-msg ' + type;
+    el.textContent = msg;
+    $('#toastContainer').appendChild(el);
+    setTimeout(() => { el.style.opacity='0'; el.style.transition='opacity .2s'; setTimeout(()=>el.remove(),200); }, 3500);
+}
+
+function api(url, opts) {
+    opts = opts || {};
+    return fetch(url, {
+        method: opts.method || 'GET',
+        headers: Object.assign({'Content-Type':'application/json'}, opts.headers||{}),
+        body: opts.body ? JSON.stringify(opts.body) : undefined,
+    }).then(r => {
+        if (!r.ok) return r.json().then(d => { throw new Error(d.message || '请求失败') });
+        return r.json();
+    });
+}
+
+// ─── Tab Switching ───
+function switchTab(tab) {
+    currentTab = tab;
+    $$('.nav-item').forEach(b => b.classList.remove('active'));
+    $(`.nav-item[data-tab="${tab}"]`).classList.add('active');
+    $$('.tab-panel').forEach(p => p.classList.remove('active'));
+    $(`#tab-${tab}`).classList.add('active');
+
+    if (tab === 'dashboard') loadDashboard();
+    else if (tab === 'items') loadItems(1);
+    else if (tab === 'control') { loadTaskControl(); startTaskControlPolling(); }
+    else if (tab === 'logs') loadLogs();
+    else if (tab === 'history') loadTaskHistory(1);
+    else if (tab === 'archive') loadArchive(1);
+
+    if (tab !== 'control') stopTaskControlPolling();
+}
+
+$$('.nav-item').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// ─── Dashboard ───
+function loadDashboard() {
+    api('/api/data/stats').then(d => {
+        const stats = [
+            {icon:'📋',value:d.total_items,label:'总条目数',bg:'#eef2ff',color:'#4f46e5'},
+            {icon:'🆕',value:d.today_new,label:'今日新增',bg:'#ecfdf5',color:'#10b981'},
+            {icon:'📊',value:d.week_new,label:'本周新增',bg:'#fef3c7',color:'#f59e0b'},
+            {icon:'🌐',value:d.active_sites,label:'活跃站点',bg:'#fce7f3',color:'#ec4899'},
+        ];
+        $('#statCards').innerHTML = stats.map(s =>
+            `<div class="stat-card"><div class="icon" style="background:${s.bg};color:${s.color}">${s.icon}</div><div class="info"><div class="value">${s.value}</div><div class="label">${s.label}</div></div></div>`
+        ).join('');
+    }).catch(e => toast(e.message, 'error'));
+    loadDashItems(1);
+}
+
+function loadDashItems(page) {
+    dashPage = page || 1;
+    const site = $('#dashFilterSite').value;
+    const type = $('#dashFilterType').value;
+    const kw = $('#dashFilterKeyword').value;
+
+    api(`/api/data/items?page=${dashPage}&per_page=10&site=${encodeURIComponent(site)}&type=${encodeURIComponent(type)}&keyword=${encodeURIComponent(kw)}`).then(d => {
+        dashTotalPages = d.pages;
+
+        if (!site && !type && !kw) {
+            const sites = d.sites || [];
+            $('#dashFilterSite').innerHTML = '<option value="">全部站点</option>' + sites.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+        }
+
+        if (d.items.length === 0) {
+            $('#dashItemsTable').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:24px">暂无数据</td></tr>';
+        } else {
+            $('#dashItemsTable').innerHTML = d.items.map(i =>
+                `<tr>
+                    <td class="checkbox-cell"><input type="checkbox" class="dash-check" value="${i.id}" onchange="updateBatchBar('dash')"></td>
+                    <td><a href="${esc(i.url)}" target="_blank" title="${esc(i.title)}">${esc((i.title||'').substring(0,60))}${(i.title||'').length>60?'...':''}</a></td>
+                    <td class="hide-mobile" style="font-size:12px">${esc(i.site_name)}</td>
+                    <td class="hide-mobile"><span class="badge-status badge-info">${esc(i.item_type||'-')}</span></td>
+                    <td class="hide-mobile" style="font-size:12px;color:var(--text-secondary)">${esc(i.publish_date||'-')}</td>
+                    <td class="hide-mobile" style="font-size:12px;color:var(--text-secondary)">${esc(i.keywords_matched||'-')}</td>
+                    <td><button class="btn-xs" onclick="archiveItem(${i.id},'dash')">归档</button></td>
+                </tr>`
+            ).join('');
+            updateBatchBar('dash');
+        }
+        renderPagination('dashItemsPagination', dashPage, dashTotalPages, loadDashItems);
+    }).catch(e => toast(e.message, 'error'));
+}
+
+function dashSearchDebounce() {
+    clearTimeout(dashSearchTimer);
+    dashSearchTimer = setTimeout(() => loadDashItems(1), 400);
+}
+
+// ─── Items ───
+function loadItems(page) {
+    itemsPage = page || 1;
+    const site = $('#filterSite').value;
+    const type = $('#filterType').value;
+    const kw = $('#filterKeyword').value;
+
+    api(`/api/data/items?page=${itemsPage}&per_page=15&site=${encodeURIComponent(site)}&type=${encodeURIComponent(type)}&keyword=${encodeURIComponent(kw)}`).then(d => {
+        itemsTotalPages = d.pages;
+        $('#itemsCount').textContent = d.total;
+
+        if (!site && !type && !kw) {
+            // Populate site filter
+            const sites = d.sites || [];
+            $('#filterSite').innerHTML = '<option value="">全部站点</option>' + sites.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+        }
+
+        if (d.items.length === 0) {
+            $('#itemsTable').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:24px">暂无数据</td></tr>';
+        } else {
+            $('#itemsTable').innerHTML = d.items.map(i =>
+                `<tr>
+                    <td class="checkbox-cell"><input type="checkbox" class="items-check" value="${i.id}" onchange="updateBatchBar('items')"></td>
+                    <td><a href="${esc(i.url)}" target="_blank" title="${esc(i.title)}">${esc((i.title||'').substring(0,60))}${(i.title||'').length>60?'...':''}</a></td>
+                    <td class="hide-mobile" style="font-size:12px">${esc(i.site_name)}</td>
+                    <td class="hide-mobile"><span class="badge-status badge-info">${esc(i.item_type||'-')}</span></td>
+                    <td class="hide-mobile" style="font-size:12px;color:var(--text-secondary)">${esc(i.publish_date||'-')}</td>
+                    <td class="hide-mobile" style="font-size:12px;color:var(--text-secondary)">${esc(i.keywords_matched||'-')}</td>
+                    <td><button class="btn-xs" onclick="archiveItem(${i.id},'items')">归档</button></td>
+                </tr>`
+            ).join('');
+            updateBatchBar('items');
+        }
+
+        renderPagination('itemsPagination', itemsPage, itemsTotalPages, loadItems);
+    }).catch(e => toast(e.message, 'error'));
+}
+
+function debounceSearch() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => loadItems(1), 400);
+}
+
+function renderPagination(id, page, total, fn) {
+    if (total <= 1) { $('#'+id).innerHTML = ''; return; }
+    let html = `<div style="font-size:12px;color:var(--text-secondary)">第 ${page}/${total} 页</div><div class="pages">`;
+    html += `<button class="page-btn" onclick="${fn.name}(${page-1})" ${page<=1?'disabled':''}>◀</button>`;
+    for (let i = 1; i <= total; i++) {
+        if (total > 7 && i > 2 && i < total-1 && Math.abs(i-page) > 1) {
+            if (i === 3) html += '<span style="padding:0 4px">...</span>';
+            continue;
+        }
+        html += `<button class="page-btn ${i===page?'active':''}" onclick="${fn.name}(${i})">${i}</button>`;
+    }
+    html += `<button class="page-btn" onclick="${fn.name}(${page+1})" ${page>=total?'disabled':''}>▶</button></div>`;
+    $('#'+id).innerHTML = html;
+}
+
+// ─── Task Control ───
+function loadTaskControl() {
+    api('/api/task/status').then(d => {
+        const running = d.running;
+        $('#schedDot').style.background = running ? '#10b981' : '#ef4444';
+        $('#schedText').textContent = running ? '调度器运行中' : '调度器未启动';
+        $('#btnSchedStart').disabled = running;
+        $('#btnSchedStop').disabled = !running;
+
+        const sites = d.sites || [];
+        const jobs = d.jobs || [];
+        function findJob(n) { return jobs.find(j => j.name === n); }
+
+        $('#siteJobCount').textContent = sites.length;
+
+        if (sites.length === 0) {
+            $('#controlTable').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:24px">暂无站点，点击右上角"新增站点"</td></tr>';
+        } else {
+            $('#controlTable').innerHTML = sites.map(s => {
+                const job = findJob(s.name);
+                const nextRun = job ? (job.next_run || '-') : '(未加入调度)';
+                const sid = safeId(s.name);
+                const es = esc(s.name);
+                return `<tr id="ctrl-row-${sid}">
+                    <td id="ctrl-name-${sid}" data-orig="${esc(s.name)}"><strong>${esc(s.name)}</strong></td>
+                    <td id="ctrl-url-${sid}" class="hide-mobile" data-orig="${esc(s.url||'')}" style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.url||'-')}</td>
+                    <td id="ctrl-kw-${sid}" data-orig="${esc(s.keywords||'')}" style="font-size:12px"><code>${esc(s.keywords||'-')}</code></td>
+                    <td id="ctrl-cron-${sid}" data-orig="${esc(s.cron_expr)}" style="font-size:12px"><span class="badge-status badge-info">${esc(s.cron_expr)}</span></td>
+                    <td style="font-size:11px;color:var(--text-secondary)">${nextRun}</td>
+                    <td id="ctrl-days-${sid}" class="hide-mobile" data-orig="${s.days_back}" style="font-size:12px">${s.days_back}天</td>
+                    <td id="ctrl-btns-${sid}" style="white-space:nowrap">
+                        <button class="btn-xs" onclick="runSite('${es}')">执行</button>
+                        <button class="btn-xs" onclick="enterEdit('${es}')">编辑</button>
+                        <button class="btn-xs danger" onclick="confirmDeleteSite('${es}')">×</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+    }).catch(e => toast(e.message, 'error'));
+}
+
+function startTaskControlPolling() {
+    stopTaskControlPolling();
+    taskControlInterval = setInterval(loadTaskControl, 5000);
+}
+function stopTaskControlPolling() {
+    if (taskControlInterval) { clearInterval(taskControlInterval); taskControlInterval = null; }
+}
+
+function schedStart() {
+    api('/api/task/start', {method:'POST'}).then(d => {
+        toast(d.message, d.success?'success':'error');
+        loadTaskControl();
+    }).catch(e => toast(e.message, 'error'));
+}
+function schedStop() {
+    api('/api/task/stop', {method:'POST'}).then(d => {
+        toast(d.message, d.success?'success':'error');
+        loadTaskControl();
+    }).catch(e => toast(e.message, 'error'));
+}
+function runSite(name) {
+    api('/api/task/run/' + encodeURIComponent(name), {method:'POST'}).then(d => {
+        toast(d.message, d.success?'success':'error');
+    }).catch(e => toast(e.message, 'error'));
+}
+
+// ─── Inline Edit (Full Row) ───
+// Column config: [id-suffix, label, input-type, input-width, hide-on-mobile]
+const EDIT_FIELDS = [
+    ['name',  '站点名称', 'text',   '140px', false],
+    ['url',   '站点地址', 'text',   '180px', true],
+    ['kw',    '关键词',  'text',   '140px', false],
+    ['cron',  'Cron',    'text',   '100px', false],
+    ['days',  '回溯天数', 'number', '60px',  true],
+];
+
+function enterEdit(name) {
+    if (editingSite) cancelEdit();
+    editingSite = name;
+    stopTaskControlPolling();
+    const sid = safeId(name);
+    const row = $('#ctrl-row-'+sid);
+    const btnCell = $('#ctrl-btns-'+sid);
+    btnCell.setAttribute('data-orig', btnCell.innerHTML);
+
+    EDIT_FIELDS.forEach(([suffix, , type, width]) => {
+        const cell = $('#ctrl-'+suffix+'-'+sid);
+        if (!cell) return;
+        // Show all cells during edit (remove hide-mobile if present)
+        cell.classList.remove('hide-mobile');
+        const orig = cell.getAttribute('data-orig') || '';
+        cell.innerHTML = `<input class="cell-input" id="edit-${suffix}-${sid}" type="${type}" value="${esc(orig)}" style="width:${width}">`;
+    });
+
+    btnCell.innerHTML = `<button class="btn-xs green" onclick="saveEdit('${esc(name)}')">保存</button><button class="btn-xs" onclick="cancelEdit('${esc(name)}')">取消</button>`;
+    row.classList.add('row-editing');
+}
+
+function saveEdit(name) {
+    const sid = safeId(name);
+    const data = {};
+    EDIT_FIELDS.forEach(([suffix]) => {
+        const input = $('#edit-'+suffix+'-'+sid);
+        if (!input) return;
+        if (suffix === 'name') data.site_name = input.value.trim();
+        else if (suffix === 'url') data.site_url = input.value.trim();
+        else if (suffix === 'kw') data.keywords = input.value.trim();
+        else if (suffix === 'cron') data.cron_expr = input.value.trim() || '0 9 * * *';
+        else if (suffix === 'days') data.days_back = parseInt(input.value) || 7;
+    });
+
+    if (!data.site_name) { toast('站点名称不能为空', 'error'); return; }
+
+    const apiName = $('#ctrl-name-'+sid).getAttribute('data-orig');
+    api('/api/task/sites/'+encodeURIComponent(apiName), {method:'PUT', body:data}).then(d => {
+        toast(d.message, 'success');
+        editingSite = null;
+        loadTaskControl();
+        startTaskControlPolling();
+    }).catch(e => {
+        toast(e.message, 'error');
+        editingSite = null;
+        loadTaskControl();
+        startTaskControlPolling();
+    });
+}
+
+function cancelEdit(name) {
+    // Restore original display values from data-orig without server reload
+    const sid = safeId(name || editingSite);
+    const btnCell = $('#ctrl-btns-'+sid);
+    const row = $('#ctrl-row-'+sid);
+    row.classList.remove('row-editing');
+
+    EDIT_FIELDS.forEach(([suffix, , , , hideMobile]) => {
+        const cell = $('#ctrl-'+suffix+'-'+sid);
+        if (!cell) return;
+        const orig = cell.getAttribute('data-orig') || '';
+        if (hideMobile) cell.classList.add('hide-mobile');
+        else cell.classList.remove('hide-mobile');
+
+        if (suffix === 'name') {
+            cell.innerHTML = `<strong>${esc(orig)}</strong>`;
+        } else if (suffix === 'kw') {
+            cell.innerHTML = `<code>${esc(orig||'-')}</code>`;
+        } else if (suffix === 'cron') {
+            cell.innerHTML = `<span class="badge-status badge-info">${esc(orig)}</span>`;
+        } else if (suffix === 'days') {
+            cell.innerHTML = `${orig}天`;
+        } else {
+            cell.innerHTML = esc(orig||'-');
+        }
+    });
+
+    // Restore original buttons
+    if (btnCell.getAttribute('data-orig')) {
+        btnCell.innerHTML = btnCell.getAttribute('data-orig');
+    }
+
+    editingSite = null;
+    startTaskControlPolling();
+}
+
+// ─── Site Modal ───
+function showSiteModal(editData) {
+    const title = $('#siteModalTitle');
+    const mode = $('#modalMode');
+    if (editData) {
+        title.textContent = '编辑站点: ' + editData.name;
+        mode.value = 'edit';
+        $('#modalOrigName').value = editData.name;
+        $('#mSiteName').value = editData.name; $('#mSiteName').readOnly = true;
+        $('#mSiteUrl').value = editData.url || '';
+        $('#mKeywords').value = editData.keywords || '';
+        $('#mCron').value = editData.cron_expr || '0 9 * * *';
+        $('#mDaysBack').value = editData.days_back || 7;
+        $('#mSearchType').value = editData.search_type || 'both';
+        $('#mSearchUrl').value = editData.search_url || '';
+        $('#mEnabled').checked = editData.enabled !== false;
+    } else {
+        title.textContent = '新增站点';
+        mode.value = 'add';
+        $('#modalOrigName').value = '';
+        $('#mSiteName').value = ''; $('#mSiteName').readOnly = false;
+        $('#mSiteUrl').value = '';
+        $('#mKeywords').value = '';
+        $('#mCron').value = '0 9 * * *';
+        $('#mDaysBack').value = 7;
+        $('#mSearchType').value = 'both';
+        $('#mSearchUrl').value = '';
+        $('#mEnabled').checked = true;
+    }
+    $('#siteModalOverlay').style.display = 'flex';
+}
+function closeSiteModal() { $('#siteModalOverlay').style.display = 'none'; }
+function saveSite() {
+    const mode = $('#modalMode').value;
+    const data = {
+        site_name: $('#mSiteName').value.trim(),
+        site_url: $('#mSiteUrl').value.trim(),
+        keywords: $('#mKeywords').value.trim(),
+        cron_expr: $('#mCron').value.trim() || '0 9 * * *',
+        days_back: parseInt($('#mDaysBack').value) || 7,
+        search_type: $('#mSearchType').value,
+        search_url: $('#mSearchUrl').value.trim(),
+        enabled: $('#mEnabled').checked,
+    };
+    if (!data.site_name || !data.site_url) { toast('站点名称和地址不能为空', 'error'); return; }
+
+    const btn = $('#btnSaveSite');
+    btn.disabled = true; btn.textContent = '保存中...';
+
+    const isAdd = mode === 'add';
+    const url = isAdd ? '/api/task/sites' : '/api/task/sites/' + encodeURIComponent($('#modalOrigName').value);
+    const method = isAdd ? 'POST' : 'PUT';
+
+    api(url, {method, body:data}).then(d => {
+        btn.disabled = false; btn.textContent = '保存';
+        closeSiteModal();
+        toast(d.message, 'success');
+        loadTaskControl();
+    }).catch(e => { btn.disabled = false; btn.textContent = '保存'; toast(e.message, 'error'); });
+}
+
+// ─── Delete ───
+function confirmDeleteSite(name) {
+    deleteTarget = name;
+    $('#deleteModalText').innerHTML = '确定要删除站点 <strong id="deleteSiteName">' + esc(name) + '</strong>？此操作不可恢复。';
+    $('#deleteModalOverlay').style.display = 'flex';
+}
+function closeDeleteModal() { $('#deleteModalOverlay').style.display = 'none'; deleteTarget = null; }
+function doDeleteSite() {
+    if (!deleteTarget) return;
+    const btn = $('#btnConfirmDelete');
+    btn.disabled = true; btn.textContent = '删除中...';
+    api('/api/task/sites/'+encodeURIComponent(deleteTarget), {method:'DELETE'}).then(d => {
+        btn.disabled = false; btn.textContent = '确认删除';
+        closeDeleteModal();
+        toast(d.message, 'success');
+        loadTaskControl();
+    }).catch(e => { btn.disabled = false; btn.textContent = '确认删除'; closeDeleteModal(); toast(e.message, 'error'); });
+}
+
+// ─── Logs ───
+function loadLogs() {
+    const file = $('#logFileSelect').value;
+    const kw = $('#logKeyword').value;
+    const lines = $('#logLines').value;
+    api(`/api/data/logs?file=${encodeURIComponent(file)}&keyword=${encodeURIComponent(kw)}&lines=${lines}`).then(d => {
+        // Populate file selector
+        const files = d.files || [];
+        $('#logFileSelect').innerHTML = files.map(f => `<option value="${esc(f.path)}" ${f.path===d.current_file?'selected':''}>${f.name} (${f.size_kb}KB)</option>`).join('');
+
+        if (d.content.length === 0) {
+            $('#logContent').textContent = '暂无日志内容';
+        } else {
+            $('#logContent').textContent = d.content.join('\n');
+        }
+    }).catch(e => toast(e.message, 'error'));
+}
+function debounceLogSearch() {
+    clearTimeout(logSearchTimer);
+    logSearchTimer = setTimeout(loadLogs, 500);
+}
+
+// ─── Task History ───
+function loadTaskHistory(page) {
+    tasksPage = page || 1;
+    api(`/api/data/tasks?page=${tasksPage}&per_page=15`).then(d => {
+        tasksTotalPages = d.pages;
+        if (d.tasks.length === 0) {
+            $('#taskHistoryTable').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);padding:24px">暂无记录</td></tr>';
+        } else {
+            $('#taskHistoryTable').innerHTML = d.tasks.map(t =>
+                `<tr>
+                    <td>${esc(t.site_name)}</td>
+                    <td><span class="badge-status ${t.status==='success'?'badge-success':t.status==='failed'?'badge-danger':'badge-warning'}">${esc(t.status)}</span></td>
+                    <td style="font-size:12px;color:var(--text-secondary)">${t.run_at}</td>
+                    <td class="hide-mobile">${t.items_found||0}</td>
+                    <td class="hide-mobile">${t.items_new||0}</td>
+                    <td style="font-size:11px;color:var(--text-secondary);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(t.error_msg||'')}">${esc((t.error_msg||'-').substring(0,50))}</td>
+                </tr>`
+            ).join('');
+        }
+        renderPagination('taskHistoryPagination', tasksPage, tasksTotalPages, loadTaskHistory);
+    }).catch(e => toast(e.message, 'error'));
+}
+
+// ─── Archive ───
+function archiveItem(id, source) {
+    api('/api/data/items/' + id + '/archive', {method:'POST'}).then(d => {
+        toast(d.message, 'success');
+        if (source === 'dash') loadDashItems(dashPage);
+        else loadItems(itemsPage);
+    }).catch(e => toast(e.message, 'error'));
+}
+
+function unarchiveItem(id) {
+    api('/api/data/items/' + id + '/unarchive', {method:'POST'}).then(d => {
+        toast(d.message, 'success');
+        loadArchive(archPage);
+    }).catch(e => toast(e.message, 'error'));
+}
+
+function loadArchive(page) {
+    archPage = page || 1;
+    const site = $('#archFilterSite').value;
+    const type = $('#archFilterType').value;
+    const kw = $('#archFilterKeyword').value;
+
+    api(`/api/data/items?page=${archPage}&per_page=15&archived=1&site=${encodeURIComponent(site)}&type=${encodeURIComponent(type)}&keyword=${encodeURIComponent(kw)}`).then(d => {
+        archTotalPages = d.pages;
+        $('#archiveCount').textContent = d.total;
+
+        if (!site && !type && !kw) {
+            const sites = d.sites || [];
+            $('#archFilterSite').innerHTML = '<option value="">全部站点</option>' + sites.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+        }
+
+        if (d.items.length === 0) {
+            $('#archiveTable').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);padding:24px">暂无已归档记录</td></tr>';
+        } else {
+            $('#archiveTable').innerHTML = d.items.map(i =>
+                `<tr>
+                    <td class="checkbox-cell"><input type="checkbox" class="arch-check" value="${i.id}" onchange="updateBatchBar('arch')"></td>
+                    <td><a href="${esc(i.url)}" target="_blank" title="${esc(i.title)}">${esc((i.title||'').substring(0,60))}${(i.title||'').length>60?'...':''}</a></td>
+                    <td class="hide-mobile" style="font-size:12px">${esc(i.site_name)}</td>
+                    <td class="hide-mobile"><span class="badge-status badge-info">${esc(i.item_type||'-')}</span></td>
+                    <td class="hide-mobile" style="font-size:11px;color:var(--text-secondary)">${esc(i.archived_at||'-')}</td>
+                    <td style="white-space:nowrap">
+                        <button class="btn-xs primary" onclick="unarchiveItem(${i.id})">恢复</button>
+                        <button class="btn-xs danger" onclick="confirmDeleteSingle(${i.id})">×</button>
+                    </td>
+                </tr>`
+            ).join('');
+            updateBatchBar('arch');
+        }
+        renderPagination('archivePagination', archPage, archTotalPages, loadArchive);
+    }).catch(e => toast(e.message, 'error'));
+}
+
+function archSearchDebounce() {
+    clearTimeout(archSearchTimer);
+    archSearchTimer = setTimeout(() => loadArchive(1), 400);
+}
+
+// ─── Batch Operations ───
+function getCheckedIds(prefix) {
+    const checks = $$('.' + prefix + '-check');
+    const ids = [];
+    checks.forEach(c => { if (c.checked) ids.push(parseInt(c.value)); });
+    return ids;
+}
+
+function updateBatchBar(prefix) {
+    const ids = getCheckedIds(prefix);
+    const barId = (prefix === 'dash') ? 'dashBatchBar' : (prefix === 'arch') ? 'archBatchBar' : 'itemsBatchBar';
+    const countId = (prefix === 'dash') ? 'dashSelectedCount' : (prefix === 'arch') ? 'archSelectedCount' : 'itemsSelectedCount';
+    const bar = $('#' + barId);
+    const count = $('#' + countId);
+
+    // Reset select-all checkbox
+    const selectAll = $('#' + prefix + 'SelectAll');
+    if (selectAll) selectAll.checked = false;
+
+    if (bar && count) {
+        count.textContent = '已选 ' + ids.length + ' 条';
+        bar.style.display = ids.length > 0 ? 'flex' : 'none';
+    }
+}
+
+function toggleSelectAll(prefix) {
+    const selectAll = $('#' + prefix + 'SelectAll');
+    const checks = $$('.' + prefix + '-check');
+    checks.forEach(c => { c.checked = selectAll.checked; });
+    updateBatchBar(prefix);
+}
+
+function batchArchive(prefix) {
+    const ids = getCheckedIds(prefix);
+    if (ids.length === 0) { toast('请勾选要归档的记录', 'error'); return; }
+    api('/api/data/items/batch/archive', {method:'POST', body:{ids:ids}}).then(d => {
+        toast(d.message, 'success');
+        if (prefix === 'dash') loadDashItems(dashPage);
+        else loadItems(itemsPage);
+    }).catch(e => toast(e.message, 'error'));
+}
+
+function batchUnarchive() {
+    const ids = getCheckedIds('arch');
+    if (ids.length === 0) { toast('请勾选要恢复的记录', 'error'); return; }
+    api('/api/data/items/batch/unarchive', {method:'POST', body:{ids:ids}}).then(d => {
+        toast(d.message, 'success');
+        loadArchive(archPage);
+    }).catch(e => toast(e.message, 'error'));
+}
+
+function confirmDeleteSingle(id) {
+    deleteTarget = [id];
+    $('#deleteModalOverlay').style.display = 'flex';
+    $('#deleteModalText').innerHTML = '确定要<strong>永久删除</strong>该条归档记录？此操作不可恢复。';
+}
+function batchDelete() {
+    const ids = getCheckedIds('arch');
+    if (ids.length === 0) { toast('请勾选要删除的记录', 'error'); return; }
+    deleteTarget = ids;
+    $('#deleteModalOverlay').style.display = 'flex';
+    $('#deleteModalText').innerHTML = '确定要<strong>永久删除</strong> ' + ids.length + ' 条归档记录？此操作不可恢复。';
+}
+// Override doDeleteSite to handle both sites and items
+const _origDoDeleteSite = doDeleteSite;
+doDeleteSite = function() {
+    if (Array.isArray(deleteTarget) && deleteTarget.length > 0) {
+        const ids = deleteTarget;
+        const btn = $('#btnConfirmDelete');
+        btn.disabled = true; btn.textContent = '删除中...';
+        api('/api/data/items/batch/delete', {method:'POST', body:{ids:ids}}).then(d => {
+            btn.disabled = false; btn.textContent = '确认删除';
+            closeDeleteModal();
+            toast(d.message, 'success');
+            loadArchive(archPage);
+        }).catch(e => {
+            btn.disabled = false; btn.textContent = '确认删除';
+            closeDeleteModal();
+            toast(e.message, 'error');
+        });
+    } else if (typeof deleteTarget === 'string') {
+        _origDoDeleteSite();
+    }
+};
+
+// ─── Init ───
+loadDashboard();
+</script>
+{% endblock %}

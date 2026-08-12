@@ -1,0 +1,494 @@
+{% extends 'admin/master.html' %}
+
+{% block head_css %}
+{{ super() }}
+<style>
+    .status-indicator {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        margin-right: 8px;
+        animation: pulse 2s infinite;
+    }
+    .status-running { background: #28a745; }
+    .status-stopped { background: #dc3545; }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    .job-row:hover { background: #f0f8ff; }
+    .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
+    .editable-cell { cursor: pointer; border-bottom: 1px dashed transparent; transition: all .15s; }
+    .editable-cell:hover { border-bottom-color: #007bff; color: #007bff; }
+    .cell-input { width: 100%; border: 1px solid #007bff; border-radius: 3px; padding: 2px 6px; font-size: 13px; }
+    .cell-input-sm { width: 60px; }
+    .row-editing { background: #fffde7 !important; }
+    .btn-action { padding: 2px 8px; font-size: 12px; }
+    .site-url { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>任务管控中心</h3>
+        <div>
+            <span id="statusIndicator" class="status-indicator status-stopped"></span>
+            <span id="statusText" class="h5">调度器未启动</span>
+        </div>
+    </div>
+
+    <!-- 控制按钮 -->
+    <div class="mb-3 d-flex align-items-center">
+        <button id="btnStart" class="btn btn-success mr-2" onclick="startScheduler()">
+            ▶ 启动调度器
+        </button>
+        <button id="btnStop" class="btn btn-danger mr-2" onclick="stopScheduler()" disabled>
+            ⬛ 停止调度器
+        </button>
+        <button class="btn btn-outline-secondary mr-2" onclick="refreshStatus()">
+            🔄 刷新状态
+        </button>
+        <button class="btn btn-primary ml-auto" onclick="showAddModal()">
+            + 新增站点
+        </button>
+    </div>
+
+    <!-- 站点任务列表 -->
+    <div class="card">
+        <div class="card-header">
+            <strong>定时任务列表</strong>
+            <span id="jobCount" class="badge badge-secondary ml-2">0</span>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:12%">站点名称</th>
+                        <th style="width:18%">站点地址</th>
+                        <th style="width:16%">搜索关键词</th>
+                        <th style="width:10%">Cron 表达式</th>
+                        <th style="width:12%">下次执行</th>
+                        <th style="width:7%">回溯天数</th>
+                        <th style="width:25%" class="text-right">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="jobsTableBody">
+                    <tr><td colspan="7" class="text-center text-muted py-4">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 提示 Toast -->
+    <div class="toast-container">
+        <div id="toast" class="toast" role="alert" style="min-width:300px">
+            <div class="toast-header">
+                <strong class="mr-auto" id="toastTitle">提示</strong>
+                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast">&times;</button>
+            </div>
+            <div class="toast-body" id="toastBody"></div>
+        </div>
+    </div>
+
+    <!-- 新增/编辑站点弹窗 -->
+    <div class="modal fade" id="siteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="siteModalTitle">新增站点</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="modalMode" value="add">
+                    <input type="hidden" id="modalOrigName" value="">
+                    <div class="form-group">
+                        <label>站点名称 <span class="text-danger">*</span></label>
+                        <input id="modalSiteName" class="form-control form-control-sm" placeholder="唯一标识，如：中国政府采购网">
+                    </div>
+                    <div class="form-group">
+                        <label>站点地址 <span class="text-danger">*</span></label>
+                        <input id="modalSiteUrl" class="form-control form-control-sm" placeholder="https://www.example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>搜索关键词</label>
+                        <input id="modalKeywords" class="form-control form-control-sm" placeholder="多个关键词用逗号分隔">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label>Cron 表达式</label>
+                            <input id="modalCron" class="form-control form-control-sm" placeholder="0 9 * * *" value="0 9 * * *">
+                        </div>
+                        <div class="form-group col-6">
+                            <label>回溯天数</label>
+                            <input id="modalDaysBack" class="form-control form-control-sm" type="number" value="7" min="1" max="365">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>搜索类型</label>
+                        <select id="modalSearchType" class="form-control form-control-sm">
+                            <option value="both">招标+中标</option>
+                            <option value="zhaobiao">仅招标</option>
+                            <option value="zhongbiao">仅中标</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>搜索URL模板</label>
+                        <input id="modalSearchUrl" class="form-control form-control-sm" placeholder="支持 {keyword} {start_date} 占位符">
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="modalEnabled" checked>
+                            <label class="custom-control-label" for="modalEnabled">启用此站点</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="btnSaveSite" onclick="saveSite()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认弹窗 -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">确认删除</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>确定要删除站点 <strong id="deleteSiteName"></strong> 吗？</p>
+                    <p class="text-muted small">此操作不可恢复，相关的定时任务也将被移除。</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger btn-sm" id="btnConfirmDelete">确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block tail_js %}
+{{ super() }}
+<script>
+    let refreshTimer = null;
+    let editingSite = null;  // 当前正在编辑的站点名
+
+    function safeId(name) {
+        return name.replace(/[^a-zA-Z0-9\u4e00-\u9fff_-]/g, '_');
+    }
+
+    function escAttr(val) {
+        return (val || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    function showToast(title, message, cls) {
+        const toast = $('#toast');
+        $('#toastTitle').text(title);
+        $('#toastBody').text(message);
+        toast.removeClass('text-white bg-success bg-danger').addClass(cls || '');
+        toast.toast({ delay: 4000 }).toast('show');
+    }
+
+    // ─── 调度器控制 ───
+
+    function startScheduler() {
+        $('#btnStart').prop('disabled', true).text('启动中...');
+        $.post('/api/task/start', function(data) {
+            if (data.success) {
+                showToast('成功', data.message, 'text-white bg-success');
+            } else {
+                showToast('失败', data.message, 'text-white bg-danger');
+            }
+            refreshStatus();
+        }).fail(function() {
+            showToast('错误', '请求失败，请检查服务是否正常运行', 'text-white bg-danger');
+            refreshStatus();
+        });
+    }
+
+    function stopScheduler() {
+        $('#btnStop').prop('disabled', true).text('停止中...');
+        $.post('/api/task/stop', function(data) {
+            if (data.success) {
+                showToast('成功', data.message, 'text-white bg-success');
+            } else {
+                showToast('失败', data.message, 'text-white bg-danger');
+            }
+            refreshStatus();
+        }).fail(function() {
+            showToast('错误', '请求失败', 'text-white bg-danger');
+            refreshStatus();
+        });
+    }
+
+    function runSite(siteName) {
+        const sid = safeId(siteName);
+        const btn = $(`#btnRun-${sid}`);
+        btn.prop('disabled', true).text('执行中...');
+        $.post('/api/task/run/' + encodeURIComponent(siteName), function(data) {
+            if (data.success) {
+                showToast('已触发', data.message, 'text-white bg-success');
+            } else {
+                showToast('失败', data.message, 'text-white bg-danger');
+            }
+            setTimeout(refreshStatus, 3000);
+        }).fail(function() {
+            showToast('错误', '请求失败', 'text-white bg-danger');
+            refreshStatus();
+        });
+    }
+
+    // ─── 内联编辑 ───
+
+    function enterEdit(siteName) {
+        if (editingSite === siteName) return;
+        if (editingSite) cancelEdit(editingSite);  // 先取消之前的编辑
+
+        editingSite = siteName;
+        const sid = safeId(siteName);
+        const row = $(`#row-${sid}`);
+        row.addClass('row-editing');
+
+        // 关键词 → input
+        const keywords = $(`#cell-keywords-${sid}`).text().trim();
+        $(`#cell-keywords-${sid}`).html(`<input class="cell-input" id="edit-keywords-${sid}" value="${escAttr(keywords)}" placeholder="逗号分隔">`);
+
+        // Cron → input
+        const cron = $(`#cell-cron-${sid}`).text().trim();
+        $(`#cell-cron-${sid}`).html(`<input class="cell-input" id="edit-cron-${sid}" value="${escAttr(cron)}">`);
+
+        // 回溯天数 → input
+        const days = $(`#cell-days-${sid}`).text().replace('天','').trim();
+        $(`#cell-days-${sid}`).html(`<input class="cell-input cell-input-sm" id="edit-days-${sid}" type="number" value="${days}" min="1" max="365">`);
+
+        // 操作栏 → 保存/取消
+        const origBtns = $(`#btns-${sid}`).html();
+        $(`#btns-${sid}`).attr('data-orig', origBtns).html(`
+            <button class="btn btn-sm btn-success btn-action mr-1" onclick="saveEdit('${escAttr(siteName)}')">保存</button>
+            <button class="btn btn-sm btn-outline-secondary btn-action" onclick="cancelEdit('${escAttr(siteName)}')">取消</button>
+        `);
+    }
+
+    function saveEdit(siteName) {
+        const sid = safeId(siteName);
+        const data = {
+            keywords: $(`#edit-keywords-${sid}`).val() || '',
+            cron_expr: $(`#edit-cron-${sid}`).val() || '0 9 * * *',
+            days_back: parseInt($(`#edit-days-${sid}`).val()) || 7
+        };
+
+        $.ajax({
+            url: '/api/task/sites/' + encodeURIComponent(siteName),
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(resp) {
+                if (resp.success) {
+                    showToast('成功', resp.message, 'text-white bg-success');
+                } else {
+                    showToast('失败', resp.message, 'text-white bg-danger');
+                }
+                editingSite = null;
+                refreshStatus();
+            },
+            error: function() {
+                showToast('错误', '保存失败', 'text-white bg-danger');
+                editingSite = null;
+                refreshStatus();
+            }
+        });
+    }
+
+    function cancelEdit(siteName) {
+        editingSite = null;
+        refreshStatus();  // 直接刷新恢复只读状态
+    }
+
+    // ─── 新增/编辑弹窗 ───
+
+    function showAddModal() {
+        $('#siteModalTitle').text('新增站点');
+        $('#modalMode').val('add');
+        $('#modalOrigName').val('');
+        $('#modalSiteName').val('').prop('readonly', false);
+        $('#modalSiteUrl').val('');
+        $('#modalKeywords').val('');
+        $('#modalCron').val('0 9 * * *');
+        $('#modalDaysBack').val(7);
+        $('#modalSearchType').val('both');
+        $('#modalSearchUrl').val('');
+        $('#modalEnabled').prop('checked', true);
+        $('#siteModal').modal('show');
+    }
+
+    function showEditModal(siteName, siteUrl, keywords, cron, daysBack, searchType, searchUrl, enabled) {
+        $('#siteModalTitle').text('编辑站点: ' + siteName);
+        $('#modalMode').val('edit');
+        $('#modalOrigName').val(siteName);
+        $('#modalSiteName').val(siteName).prop('readonly', true);
+        $('#modalSiteUrl').val(siteUrl || '');
+        $('#modalKeywords').val(keywords || '');
+        $('#modalCron').val(cron || '0 9 * * *');
+        $('#modalDaysBack').val(daysBack || 7);
+        $('#modalSearchType').val(searchType || 'both');
+        $('#modalSearchUrl').val(searchUrl || '');
+        $('#modalEnabled').prop('checked', enabled !== false);
+        $('#siteModal').modal('show');
+    }
+
+    function saveSite() {
+        const mode = $('#modalMode').val();
+        const btn = $('#btnSaveSite');
+        btn.prop('disabled', true).text('保存中...');
+
+        const data = {
+            site_name: $('#modalSiteName').val().trim(),
+            site_url: $('#modalSiteUrl').val().trim(),
+            keywords: $('#modalKeywords').val().trim(),
+            cron_expr: $('#modalCron').val().trim() || '0 9 * * *',
+            days_back: parseInt($('#modalDaysBack').val()) || 7,
+            search_type: $('#modalSearchType').val(),
+            search_url: $('#modalSearchUrl').val().trim(),
+            enabled: $('#modalEnabled').prop('checked')
+        };
+
+        if (!data.site_name || !data.site_url) {
+            showToast('提示', '站点名称和地址不能为空', 'text-white bg-danger');
+            btn.prop('disabled', false).text('保存');
+            return;
+        }
+
+        const isAdd = mode === 'add';
+        const url = isAdd ? '/api/task/sites' : '/api/task/sites/' + encodeURIComponent($('#modalOrigName').val());
+        const method = isAdd ? 'POST' : 'PUT';
+
+        $.ajax({
+            url: url,
+            method: method,
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(resp) {
+                btn.prop('disabled', false).text('保存');
+                if (resp.success) {
+                    $('#siteModal').modal('hide');
+                    showToast('成功', resp.message, 'text-white bg-success');
+                    refreshStatus();
+                } else {
+                    showToast('失败', resp.message, 'text-white bg-danger');
+                }
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false).text('保存');
+                const msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : '请求失败';
+                showToast('错误', msg, 'text-white bg-danger');
+            }
+        });
+    }
+
+    // ─── 删除 ───
+
+    function confirmDelete(siteName) {
+        $('#deleteSiteName').text(siteName);
+        $('#btnConfirmDelete').off('click').on('click', function() {
+            doDelete(siteName);
+        });
+        $('#deleteModal').modal('show');
+    }
+
+    function doDelete(siteName) {
+        $('#btnConfirmDelete').prop('disabled', true).text('删除中...');
+        $.ajax({
+            url: '/api/task/sites/' + encodeURIComponent(siteName),
+            method: 'DELETE',
+            success: function(resp) {
+                $('#deleteModal').modal('hide');
+                $('#btnConfirmDelete').prop('disabled', false).text('确认删除');
+                if (resp.success) {
+                    showToast('已删除', resp.message, 'text-white bg-success');
+                } else {
+                    showToast('失败', resp.message, 'text-white bg-danger');
+                }
+                refreshStatus();
+            },
+            error: function() {
+                $('#deleteModal').modal('hide');
+                $('#btnConfirmDelete').prop('disabled', false).text('确认删除');
+                showToast('错误', '删除失败', 'text-white bg-danger');
+                refreshStatus();
+            }
+        });
+    }
+
+    // ─── 渲染 ───
+
+    function refreshStatus() {
+        // 如果正在编辑中，跳过刷新以避免覆盖编辑状态
+        if (editingSite) return;
+
+        $.get('/api/task/status', function(data) {
+            const running = data.running;
+            $('#statusIndicator')
+                .removeClass('status-running status-stopped')
+                .addClass(running ? 'status-running' : 'status-stopped');
+            $('#statusText').text(running ? '调度器运行中' : '调度器未启动');
+            $('#btnStart').prop('disabled', running);
+            $('#btnStop').prop('disabled', !running);
+
+            $('#jobCount').text(data.job_count);
+            const sites = data.sites || [];
+            const jobs = data.jobs || [];
+
+            function findJob(siteName) {
+                return jobs.find(j => j.name === siteName);
+            }
+
+            let rows = '';
+            if (sites.length === 0) {
+                rows = '<tr><td colspan="7" class="text-center text-muted py-4">暂无站点配置，请点击右上角"新增站点"添加</td></tr>';
+            } else {
+                sites.forEach(function(site) {
+                    const job = findJob(site.name);
+                    const nextRun = job ? job.next_run || '-' : '(未加入调度)';
+                    const sid = safeId(site.name);
+                    const esc = escAttr(site.name);
+
+                    rows += `<tr class="job-row" id="row-${sid}">`;
+                    rows += `<td><strong>${site.name}</strong></td>`;
+                    rows += `<td><span class="site-url" title="${escAttr(site.url || '')}">${site.url || '-'}</span></td>`;
+                    rows += `<td id="cell-keywords-${sid}"><code>${site.keywords || '-'}</code></td>`;
+                    rows += `<td id="cell-cron-${sid}"><span class="badge badge-light">${site.cron_expr}</span></td>`;
+                    rows += `<td><small>${nextRun}</small></td>`;
+                    rows += `<td id="cell-days-${sid}">${site.days_back}天</td>`;
+                    rows += `<td class="text-right" id="btns-${sid}">
+                        <button id="btnRun-${sid}" class="btn btn-sm btn-outline-primary btn-action mr-1" onclick="runSite('${esc}')">执行</button>
+                        <button class="btn btn-sm btn-outline-info btn-action mr-1" onclick="enterEdit('${esc}')">编辑</button>
+                        <button class="btn btn-sm btn-outline-danger btn-action" onclick="confirmDelete('${esc}')">×</button>
+                    </td>`;
+                    rows += '</tr>';
+                });
+            }
+            $('#jobsTableBody').html(rows);
+        });
+    }
+
+    $(function() {
+        refreshStatus();
+        refreshTimer = setInterval(refreshStatus, 5000);
+
+        // 弹窗回车保存
+        $('#siteModal').on('keydown', function(e) {
+            if (e.key === 'Enter' && !$(e.target).is('textarea')) {
+                e.preventDefault();
+                saveSite();
+            }
+        });
+    });
+</script>
+{% endblock %}

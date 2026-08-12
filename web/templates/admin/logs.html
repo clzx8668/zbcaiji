@@ -1,0 +1,84 @@
+{% extends 'admin/master.html' %}
+
+{% block head_css %}
+{{ super() }}
+<style>
+    .log-container {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        font-family: 'Consolas', 'Courier New', monospace;
+        font-size: 13px;
+        line-height: 1.5;
+        padding: 15px;
+        border-radius: 6px;
+        max-height: 70vh;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+    .log-container .error-line { color: #f44747; }
+    .log-container .warn-line { color: #e2b714; }
+    .log-container .info-line { color: #569cd6; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <h3 class="mb-3">执行日志</h3>
+
+    <!-- 工具栏 -->
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <div class="btn-group">
+                <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-toggle="dropdown">
+                    {{ current_file.replace('data/logs/', '') if current_file else '选择日志文件...' }}
+                </button>
+                <div class="dropdown-menu">
+                    {% for lf in log_files %}
+                    <a class="dropdown-item {{ 'active' if lf.path == current_file }}"
+                       href="{{ url_for('logs.index', file=lf.path, keyword=keyword, lines=lines) }}">
+                        {{ lf.name }} ({{ lf.size_kb }} KB)
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <form class="form-inline" method="get" action="{{ url_for('logs.index') }}">
+                <input type="hidden" name="file" value="{{ current_file }}">
+                <input type="text" name="keyword" class="form-control form-control-sm mr-2"
+                       placeholder="搜索关键词..." value="{{ keyword }}" style="width:260px">
+                <select name="lines" class="form-control form-control-sm mr-2" style="width:100px">
+                    <option value="200" {{ 'selected' if lines==200 }}>200行</option>
+                    <option value="500" {{ 'selected' if lines==500 }}>500行</option>
+                    <option value="1000" {{ 'selected' if lines==1000 }}>1000行</option>
+                    <option value="2000" {{ 'selected' if lines==2000 }}>2000行</option>
+                </select>
+                <button type="submit" class="btn btn-sm btn-primary">搜索</button>
+            </form>
+        </div>
+        <div class="col-md-3 text-right">
+            {% if current_file %}
+            <a href="{{ url_for('logs.index', file=current_file, lines=2000) }}" class="btn btn-sm btn-outline-info">刷新</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 日志内容 -->
+    {% if content %}
+    <div class="log-container">
+        {% for line in content %}
+        <div class="
+            {% if 'ERROR' in line or 'CRITICAL' in line %}error-line
+            {% elif 'WARNING' in line %}warn-line
+            {% else %}info-line
+            {% endif %}
+        ">{{ line }}</div>
+        {% endfor %}
+    </div>
+    <div class="mt-2 text-muted small">显示 {{ content|length }} 行</div>
+    {% else %}
+    <div class="alert alert-info">请选择左侧日志文件查看内容。</div>
+    {% endif %}
+</div>
+{% endblock %}

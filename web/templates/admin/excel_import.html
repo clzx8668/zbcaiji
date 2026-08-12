@@ -1,0 +1,69 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+<div class="container-fluid">
+    <h3 class="mb-3">Excel 批量导入站点配置</h3>
+
+    {% if message %}
+    <div class="alert alert-{{ 'success' if message[0] == 'success' else 'danger' }} alert-dismissible">
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+        {{ message[1] }}
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><strong>上传 Excel 文件</strong></div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label>选择 Excel 文件 (.xlsx)</label>
+                            <input type="file" name="excel_file" class="form-control-file" accept=".xlsx" required>
+                            <small class="form-text text-muted">
+                                必须包含列：site_name（站点名称）、site_url（站点地址）
+                            </small>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" id="replaceAll" name="replace_all" value="1">
+                            <label class="form-check-label" for="replaceAll">
+                                导入前清空现有配置（全量替换）
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">开始导入</button>
+                        <a href="{{ url_for('siteconfig.index_view') }}" class="btn btn-outline-secondary ml-2">返回站点列表</a>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header"><strong>模板说明</strong></div>
+                <div class="card-body">
+                    <table class="table table-sm table-bordered">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>列名（中/英）</th>
+                                <th>是否必填</th>
+                                <th>示例值</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>站点名称 / site_name</td><td><span class="badge badge-danger">必填</span></td><td>中国政府采购网</td></tr>
+                            <tr><td>站点地址 / site_url</td><td><span class="badge badge-danger">必填</span></td><td>https://www.ccgp.gov.cn/</td></tr>
+                            <tr><td>搜索类型 / search_type</td><td>选填</td><td>both</td></tr>
+                            <tr><td>关键词 / keywords</td><td>选填</td><td>智慧校园, 信息化</td></tr>
+                            <tr><td>回溯天数 / days_back</td><td>选填（默认7）</td><td>7</td></tr>
+                            <tr><td>搜索URL / search_url</td><td>选填</td><td>https://search.ccgp.gov.cn/bxsearch?kw={keyword}</td></tr>
+                            <tr><td>定时表达式 / cron_expr</td><td>选填（默认每天9点）</td><td>0 9 * * *</td></tr>
+                            <tr><td>是否启用 / enabled</td><td>选填（默认启用）</td><td>True / 是</td></tr>
+                            <tr><td>代理 / proxy</td><td>选填</td><td></td></tr>
+                            <tr><td>备注 / notes</td><td>选填</td><td></td></tr>
+                        </tbody>
+                    </table>
+                    <p class="text-muted small">支持中文和英文列名混用。导入时按 site_name 去重：同名站点自动更新。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

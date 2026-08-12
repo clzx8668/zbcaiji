@@ -1,0 +1,19 @@
+[Unit]
+Description=招标公告聚合爬虫服务
+After=network.target
+
+[Service]
+Type=simple
+User=appuser
+WorkingDirectory=/opt/bid-scraper
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/bid-scraper/.venv/bin/python run.py schedule
+Restart=on-failure
+RestartSec=30
+
+# 日志
+StandardOutput=append:/var/log/bid-scraper/stdout.log
+StandardError=append:/var/log/bid-scraper/stderr.log
+
+[Install]
+WantedBy=multi-user.target
