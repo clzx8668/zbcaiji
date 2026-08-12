@@ -320,7 +320,7 @@ def data_stats():
 
 @data_bp.route("/items")
 def data_items():
-    """GET /api/data/items?page=1&per_page=20&site=&keyword=&type= — 分页查询爬取资料"""
+    """GET /api/data/items?page=1&per_page=20&site=&keyword=&type=&kw_matched=&date_from=&date_to=&sort_by=&order= — 分页查询爬取资料"""
     from web.models import CrawlItem
 
     page = request.args.get("page", 1, type=int)
@@ -328,6 +328,11 @@ def data_items():
     site_name = request.args.get("site", "").strip()
     keyword = request.args.get("keyword", "").strip()
     item_type = request.args.get("type", "").strip()
+    kw_matched = request.args.get("kw_matched", "").strip()
+    date_from = request.args.get("date_from", "").strip()
+    date_to = request.args.get("date_to", "").strip()
+    sort_by = request.args.get("sort_by", "first_seen").strip()
+    order = request.args.get("order", "desc").strip().lower()
     show_archived = request.args.get("archived", "0")  # "1" = 只看已归档, "0" = 只看未归档, "all" = 全部
 
     query = CrawlItem.query
@@ -346,9 +351,33 @@ def data_items():
         )
     if item_type:
         query = query.filter(CrawlItem.item_type == item_type)
+    if kw_matched:
+        query = query.filter(CrawlItem.keywords_matched.contains(kw_matched))
+    if date_from:
+        query = query.filter(CrawlItem.publish_date >= date_from)
+    if date_to:
+        query = query.filter(CrawlItem.publish_date <= date_to)
 
     total = query.count()
-    items = query.order_by(CrawlItem.first_seen.desc()).offset(
+
+    # 排序白名单，避免任意字段注入
+    SORT_COLS = {
+        "title": CrawlItem.title,
+        "site_name": CrawlItem.site_name,
+        "item_type": CrawlItem.item_type,
+        "publish_date": CrawlItem.publish_date,
+        "keywords_matched": CrawlItem.keywords_matched,
+        "amount": CrawlItem.amount,
+        "first_seen": CrawlItem.first_seen,
+        "archived_at": CrawlItem.archived_at,
+    }
+    sort_col = SORT_COLS.get(sort_by, CrawlItem.first_seen)
+    if order == "asc":
+        query = query.order_by(sort_col.asc())
+    else:
+        query = query.order_by(sort_col.desc())
+
+    items = query.offset(
         (page - 1) * per_page
     ).limit(per_page).all()
 

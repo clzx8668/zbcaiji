@@ -95,6 +95,9 @@
         text-transform: uppercase; letter-spacing: .5px; color: var(--text-secondary);
         background: #fafbfc; border-bottom: 1px solid var(--border);
     }
+    .table-custom th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+    .table-custom th.sortable:hover { color: var(--accent); }
+    .sort-arrow { color: var(--accent); font-size: 10px; margin-left: 2px; }
     .table-custom td { padding: 10px 16px; border-bottom: 1px solid #f1f3f5; vertical-align: middle; }
     .table-custom tr:hover td { background: #fafbfc; }
     .table-custom a { color: var(--accent); text-decoration: none; font-weight: 500; }
@@ -245,11 +248,15 @@
                         <option value="">全部类型</option><option value="招标公告">招标公告</option><option value="中标公告">中标公告</option>
                     </select>
                     <input class="input input-sm" id="dashFilterKeyword" placeholder="搜索关键词..." onkeyup="dashSearchDebounce()">
+                    <input class="input input-sm" id="dashFilterKwMatched" placeholder="匹配词..." onkeyup="dashSearchDebounce()">
+                    <input type="date" class="input input-sm" id="dashFilterDateFrom" title="发布日期从" onchange="loadDashItems(1)">
+                    <input type="date" class="input input-sm" id="dashFilterDateTo" title="发布日期至" onchange="loadDashItems(1)">
+                    <button class="btn-xs" onclick="resetDashFilter()">重置</button>
                 </div>
             </div>
             <div class="card-body-custom">
                 <table class="table-custom">
-                    <thead><tr><th style="width:30px"><input type="checkbox" id="dashSelectAll" onchange="toggleSelectAll('dash')"></th><th>标题</th><th class="hide-mobile">站点</th><th class="hide-mobile">类型</th><th class="hide-mobile">日期</th><th class="hide-mobile">匹配词</th><th style="width:50px">操作</th></tr></thead>
+                    <thead><tr><th style="width:30px"><input type="checkbox" id="dashSelectAll" onchange="toggleSelectAll('dash')"></th><th class="sortable" onclick="toggleSort('dash','title')">标题<span class="sort-arrow" id="dashSortTitle"></span></th><th class="hide-mobile sortable" onclick="toggleSort('dash','site_name')">站点<span class="sort-arrow" id="dashSortSitename"></span></th><th class="hide-mobile sortable" onclick="toggleSort('dash','item_type')">类型<span class="sort-arrow" id="dashSortItemtype"></span></th><th class="hide-mobile sortable" onclick="toggleSort('dash','publish_date')">日期<span class="sort-arrow" id="dashSortPublishdate"></span></th><th class="hide-mobile sortable" onclick="toggleSort('dash','keywords_matched')">匹配词<span class="sort-arrow" id="dashSortKeywordsmatched"></span></th><th style="width:50px">操作</th></tr></thead>
                     <tbody id="dashItemsTable"><tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:24px">加载中...</td></tr></tbody>
                 </table>
                 <div class="pagination-bar" id="dashItemsPagination"></div>
@@ -272,11 +279,15 @@
                         <option value="">全部类型</option><option value="招标公告">招标公告</option><option value="中标公告">中标公告</option>
                     </select>
                     <input class="input input-sm" id="filterKeyword" placeholder="搜索关键词..." onkeyup="debounceSearch()">
+                    <input class="input input-sm" id="filterKwMatched" placeholder="匹配词..." onkeyup="debounceSearch()">
+                    <input type="date" class="input input-sm" id="filterDateFrom" title="发布日期从" onchange="loadItems(1)">
+                    <input type="date" class="input input-sm" id="filterDateTo" title="发布日期至" onchange="loadItems(1)">
+                    <button class="btn-xs" onclick="resetItemsFilter()">重置</button>
                 </div>
             </div>
             <div class="card-body-custom">
                 <table class="table-custom">
-                    <thead><tr><th style="width:30px"><input type="checkbox" id="itemsSelectAll" onchange="toggleSelectAll('items')"></th><th>标题</th><th class="hide-mobile">站点</th><th class="hide-mobile">类型</th><th class="hide-mobile">日期</th><th class="hide-mobile">匹配词</th><th style="width:50px">操作</th></tr></thead>
+                    <thead><tr><th style="width:30px"><input type="checkbox" id="itemsSelectAll" onchange="toggleSelectAll('items')"></th><th class="sortable" onclick="toggleSort('items','title')">标题<span class="sort-arrow" id="itemsSortTitle"></span></th><th class="hide-mobile sortable" onclick="toggleSort('items','site_name')">站点<span class="sort-arrow" id="itemsSortSitename"></span></th><th class="hide-mobile sortable" onclick="toggleSort('items','item_type')">类型<span class="sort-arrow" id="itemsSortItemtype"></span></th><th class="hide-mobile sortable" onclick="toggleSort('items','publish_date')">日期<span class="sort-arrow" id="itemsSortPublishdate"></span></th><th class="hide-mobile sortable" onclick="toggleSort('items','keywords_matched')">匹配词<span class="sort-arrow" id="itemsSortKeywordsmatched"></span></th><th style="width:50px">操作</th></tr></thead>
                     <tbody id="itemsTable"><tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:24px">加载中...</td></tr></tbody>
                 </table>
                 <div class="pagination-bar" id="itemsPagination"></div>
@@ -353,11 +364,15 @@
                         <option value="">全部类型</option><option value="招标公告">招标公告</option><option value="中标公告">中标公告</option>
                     </select>
                     <input class="input input-sm" id="archFilterKeyword" placeholder="搜索关键词..." onkeyup="archSearchDebounce()">
+                    <input class="input input-sm" id="archFilterKwMatched" placeholder="匹配词..." onkeyup="archSearchDebounce()">
+                    <input type="date" class="input input-sm" id="archFilterDateFrom" title="发布日期从" onchange="loadArchive(1)">
+                    <input type="date" class="input input-sm" id="archFilterDateTo" title="发布日期至" onchange="loadArchive(1)">
+                    <button class="btn-xs" onclick="resetArchFilter()">重置</button>
                 </div>
             </div>
             <div class="card-body-custom">
                 <table class="table-custom">
-                    <thead><tr><th style="width:30px"><input type="checkbox" id="archSelectAll" onchange="toggleSelectAll('arch')"></th><th>标题</th><th class="hide-mobile">站点</th><th class="hide-mobile">类型</th><th class="hide-mobile">归档时间</th><th style="width:80px">操作</th></tr></thead>
+                    <thead><tr><th style="width:30px"><input type="checkbox" id="archSelectAll" onchange="toggleSelectAll('arch')"></th><th class="sortable" onclick="toggleSort('arch','title')">标题<span class="sort-arrow" id="archSortTitle"></span></th><th class="hide-mobile sortable" onclick="toggleSort('arch','site_name')">站点<span class="sort-arrow" id="archSortSitename"></span></th><th class="hide-mobile sortable" onclick="toggleSort('arch','item_type')">类型<span class="sort-arrow" id="archSortItemtype"></span></th><th class="hide-mobile sortable" onclick="toggleSort('arch','publish_date')">日期<span class="sort-arrow" id="archSortPublishdate"></span></th><th class="hide-mobile sortable" onclick="toggleSort('arch','archived_at')">归档时间<span class="sort-arrow" id="archSortArchivedat"></span></th><th style="width:80px">操作</th></tr></thead>
                     <tbody id="archiveTable"><tr><td colspan="6" style="text-align:center;color:var(--text-secondary);padding:24px">加载中...</td></tr></tbody>
                 </table>
                 <div class="pagination-bar" id="archivePagination"></div>
@@ -424,6 +439,12 @@ let archPage = 1, archTotalPages = 1;
 let tasksPage = 1, tasksTotalPages = 1;
 let searchTimer = null, logSearchTimer = null, dashSearchTimer = null, archSearchTimer = null;
 let taskControlInterval = null;
+// 表格排序状态
+const TABLE_STATE = {
+    items: {sort: 'first_seen', order: 'desc'},
+    dash:  {sort: 'first_seen', order: 'desc'},
+    arch:  {sort: 'publish_date', order: 'desc'},
+};
 
 // ─── Helpers ───
 function $(sel) { return document.querySelector(sel); }
@@ -431,6 +452,44 @@ function $$(sel) { return document.querySelectorAll(sel); }
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtDate(d) { if(!d) return '-'; return d; }
 function safeId(n) { return (n||'').replace(/[^a-zA-Z0-9\u4e00-\u9fff_-]/g,'_'); }
+
+function sortArrow(st, key) {
+    if (st.sort !== key) return ' ⇅';
+    return st.order === 'asc' ? ' ▲' : ' ▼';
+}
+function toggleSort(tbl, key) {
+    const st = TABLE_STATE[tbl];
+    if (st.sort === key) st.order = st.order === 'asc' ? 'desc' : 'asc';
+    else { st.sort = key; st.order = 'asc'; }
+    if (tbl === 'items') loadItems(1);
+    else if (tbl === 'dash') loadDashItems(1);
+    else loadArchive(1);
+}
+function updateArrows(tbl, keys) {
+    const st = TABLE_STATE[tbl];
+    (keys || []).forEach(k => {
+        const el = $('#' + tbl + 'Sort' + k.replace(/_/g, ''));
+        if (el) el.textContent = sortArrow(st, k);
+    });
+}
+function resetItemsFilter() {
+    $('#filterSite').value=''; $('#filterType').value=''; $('#filterKeyword').value='';
+    $('#filterKwMatched').value=''; $('#filterDateFrom').value=''; $('#filterDateTo').value='';
+    TABLE_STATE.items = {sort:'first_seen', order:'desc'};
+    loadItems(1);
+}
+function resetDashFilter() {
+    $('#dashFilterSite').value=''; $('#dashFilterType').value=''; $('#dashFilterKeyword').value='';
+    $('#dashFilterKwMatched').value=''; $('#dashFilterDateFrom').value=''; $('#dashFilterDateTo').value='';
+    TABLE_STATE.dash = {sort:'first_seen', order:'desc'};
+    loadDashItems(1);
+}
+function resetArchFilter() {
+    $('#archFilterSite').value=''; $('#archFilterType').value=''; $('#archFilterKeyword').value='';
+    $('#archFilterKwMatched').value=''; $('#archFilterDateFrom').value=''; $('#archFilterDateTo').value='';
+    TABLE_STATE.arch = {sort:'publish_date', order:'desc'};
+    loadArchive(1);
+}
 
 function toast(msg, type) {
     type = type || 'info';
@@ -496,11 +555,15 @@ function loadDashItems(page) {
     const site = $('#dashFilterSite').value;
     const type = $('#dashFilterType').value;
     const kw = $('#dashFilterKeyword').value;
+    const kwMatched = $('#dashFilterKwMatched').value;
+    const dateFrom = $('#dashFilterDateFrom').value;
+    const dateTo = $('#dashFilterDateTo').value;
+    const st = TABLE_STATE.dash;
 
-    api(`/api/data/items?page=${dashPage}&per_page=10&site=${encodeURIComponent(site)}&type=${encodeURIComponent(type)}&keyword=${encodeURIComponent(kw)}`).then(d => {
+    api(`/api/data/items?page=${dashPage}&per_page=10&site=${encodeURIComponent(site)}&type=${encodeURIComponent(type)}&keyword=${encodeURIComponent(kw)}&kw_matched=${encodeURIComponent(kwMatched)}&date_from=${encodeURIComponent(dateFrom)}&date_to=${encodeURIComponent(dateTo)}&sort_by=${st.sort}&order=${st.order}`).then(d => {
         dashTotalPages = d.pages;
 
-        if (!site && !type && !kw) {
+        if (!site && !type && !kw && !kwMatched && !dateFrom && !dateTo) {
             const sites = d.sites || [];
             $('#dashFilterSite').innerHTML = '<option value="">全部站点</option>' + sites.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
         }
@@ -522,6 +585,7 @@ function loadDashItems(page) {
             updateBatchBar('dash');
         }
         renderPagination('dashItemsPagination', dashPage, dashTotalPages, loadDashItems);
+        updateArrows('dash', ['title','site_name','item_type','publish_date','keywords_matched']);
     }).catch(e => toast(e.message, 'error'));
 }
 
@@ -536,12 +600,16 @@ function loadItems(page) {
     const site = $('#filterSite').value;
     const type = $('#filterType').value;
     const kw = $('#filterKeyword').value;
+    const kwMatched = $('#filterKwMatched').value;
+    const dateFrom = $('#filterDateFrom').value;
+    const dateTo = $('#filterDateTo').value;
+    const st = TABLE_STATE.items;
 
-    api(`/api/data/items?page=${itemsPage}&per_page=15&site=${encodeURIComponent(site)}&type=${encodeURIComponent(type)}&keyword=${encodeURIComponent(kw)}`).then(d => {
+    api(`/api/data/items?page=${itemsPage}&per_page=15&site=${encodeURIComponent(site)}&type=${encodeURIComponent(type)}&keyword=${encodeURIComponent(kw)}&kw_matched=${encodeURIComponent(kwMatched)}&date_from=${encodeURIComponent(dateFrom)}&date_to=${encodeURIComponent(dateTo)}&sort_by=${st.sort}&order=${st.order}`).then(d => {
         itemsTotalPages = d.pages;
         $('#itemsCount').textContent = d.total;
 
-        if (!site && !type && !kw) {
+        if (!site && !type && !kw && !kwMatched && !dateFrom && !dateTo) {
             // Populate site filter
             const sites = d.sites || [];
             $('#filterSite').innerHTML = '<option value="">全部站点</option>' + sites.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
@@ -565,6 +633,7 @@ function loadItems(page) {
         }
 
         renderPagination('itemsPagination', itemsPage, itemsTotalPages, loadItems);
+        updateArrows('items', ['title','site_name','item_type','publish_date','keywords_matched']);
     }).catch(e => toast(e.message, 'error'));
 }
 
@@ -898,18 +967,22 @@ function loadArchive(page) {
     const site = $('#archFilterSite').value;
     const type = $('#archFilterType').value;
     const kw = $('#archFilterKeyword').value;
+    const kwMatched = $('#archFilterKwMatched').value;
+    const dateFrom = $('#archFilterDateFrom').value;
+    const dateTo = $('#archFilterDateTo').value;
+    const st = TABLE_STATE.arch;
 
-    api(`/api/data/items?page=${archPage}&per_page=15&archived=1&site=${encodeURIComponent(site)}&type=${encodeURIComponent(type)}&keyword=${encodeURIComponent(kw)}`).then(d => {
+    api(`/api/data/items?page=${archPage}&per_page=15&archived=1&site=${encodeURIComponent(site)}&type=${encodeURIComponent(type)}&keyword=${encodeURIComponent(kw)}&kw_matched=${encodeURIComponent(kwMatched)}&date_from=${encodeURIComponent(dateFrom)}&date_to=${encodeURIComponent(dateTo)}&sort_by=${st.sort}&order=${st.order}`).then(d => {
         archTotalPages = d.pages;
         $('#archiveCount').textContent = d.total;
 
-        if (!site && !type && !kw) {
+        if (!site && !type && !kw && !kwMatched && !dateFrom && !dateTo) {
             const sites = d.sites || [];
             $('#archFilterSite').innerHTML = '<option value="">全部站点</option>' + sites.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
         }
 
         if (d.items.length === 0) {
-            $('#archiveTable').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);padding:24px">暂无已归档记录</td></tr>';
+            $('#archiveTable').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:24px">暂无已归档记录</td></tr>';
         } else {
             $('#archiveTable').innerHTML = d.items.map(i =>
                 `<tr>
@@ -917,6 +990,7 @@ function loadArchive(page) {
                     <td><a href="${esc(i.url)}" target="_blank" title="${esc(i.title)}">${esc((i.title||'').substring(0,60))}${(i.title||'').length>60?'...':''}</a></td>
                     <td class="hide-mobile" style="font-size:12px">${esc(i.site_name)}</td>
                     <td class="hide-mobile"><span class="badge-status badge-info">${esc(i.item_type||'-')}</span></td>
+                    <td class="hide-mobile" style="font-size:11px;color:var(--text-secondary)">${esc(i.publish_date||'-')}</td>
                     <td class="hide-mobile" style="font-size:11px;color:var(--text-secondary)">${esc(i.archived_at||'-')}</td>
                     <td style="white-space:nowrap">
                         <button class="btn-xs primary" onclick="unarchiveItem(${i.id})">恢复</button>
@@ -927,6 +1001,7 @@ function loadArchive(page) {
             updateBatchBar('arch');
         }
         renderPagination('archivePagination', archPage, archTotalPages, loadArchive);
+        updateArrows('arch', ['title','site_name','item_type','publish_date','archived_at']);
     }).catch(e => toast(e.message, 'error'));
 }
 
