@@ -11,8 +11,11 @@ _registry: Dict[str, Type[BaseSiteAdapter]] = {}
 
 def register(adapter_cls: Type[BaseSiteAdapter]):
     """注册站点适配器"""
-    if adapter_cls.site_name:
-        _registry[adapter_cls.site_name] = adapter_cls
+    # 兼容两类适配器：
+    # 1) site_name 非空：精确注册
+    # 2) site_name 为空、通过 matches() 匹配多站点（如政采云系）：按类名占位注册，模糊匹配时逐个调用 matches()
+    key = adapter_cls.site_name or adapter_cls.__name__
+    _registry[key] = adapter_cls
     return adapter_cls
 
 
@@ -36,3 +39,5 @@ def list_adapters() -> list:
 # 在这里导入并注册所有适配器
 # from sites.example_site import ExampleSiteAdapter
 # register(ExampleSiteAdapter)
+from sites.zcy import ZcySiteAdapter
+register(ZcySiteAdapter)

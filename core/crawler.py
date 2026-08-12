@@ -13,6 +13,7 @@ from core.anti_detect import random_delay, human_type, human_mouse_move, random_
 from core.browser import BrowserFactory
 from core.extractor import Extractor
 from core.search_analyzer import SearchAnalyzer, SearchConfig
+from sites import get_adapter
 from utils.excel_reader import SiteConfig
 from utils.helpers import random_sleep, url_hash
 
@@ -62,9 +63,13 @@ class Crawler:
         self.search_analyzer = SearchAnalyzer()
         self.force_reanalyze = force_reanalyze
         self.no_interact = no_interact
+        # 站点专用适配器（命中则优先使用，避免每次重新猜测）
+        adapter_cls = get_adapter(config.site_name)
+        self.adapter = adapter_cls(config) if adapter_cls else None
         # 任务总时长截止线，防止后台任务无限卡住（如交互阻塞/网络异常）
         self._deadline = time.monotonic() + (timeout_seconds or settings.CRAWL_MAX_SECONDS)
         self.results: List[CrawlResult] = []
+        self._current_keyword = ""  # 当前正在搜索的关键词（用于 keywords_matched）
         # 异常计数器（Task 5）
         self._empty_page_count = 0      # 连续空结果页数
         self._http_error_count = 0      # HTTP 异常次数
@@ -136,59 +141,78 @@ class Crawler:
         return self.results
 
     def _crawl_with_playwright(self, context):
-        """Playwright 引擎的爬取逻辑"""
+        """Playwright 引擎的爬取逻辑（支持多关键词逐个搜索）"""
         page = context.new_page()
+        keywords = self.config.keywords or [""]
+        # 通用启发式站点仅搜第一个关键词（避免反复重分析首页）；模板/适配器站点逐词搜索
+        if not (self.config.search_url or self.adapter):
+            keywords = keywords[:1]
 
-        # 若配置了 search_url，直接导航到搜索页
-        if self.config.search_url:
-            self._analyze_and_search(page)
-        else:
-            # Step 1: 打开站点首页，智能分析搜索入口，执行搜索
-            logger.debug(f"打开站点首页: {self.config.site_url}")
-            page.goto(self.config.site_url, timeout=settings.CRAWL_TIMEOUT * 1000)
-            random_delay(1, 5)
-            page.wait_for_load_state("networkidle", timeout=30000)
+        for kw in keywords:
+            if self._is_expired():
+                logger.warning(f"[{self.config.site_name}] 已达任务时长上限，停止后续关键词")
+                break
+            self._current_keyword = kw
+            logger.info(f"[{self.config.site_name}] === 关键词: {kw or '(空)'} ===")
 
-            if not self._handle_auto_verify(page):
-                if detect_captcha(page):
-                    self._handle_captcha()
+            # 若配置了 search_url 或命中站点适配器，直接导航到搜索页
+            if self.config.search_url or self.adapter:
+                self._analyze_and_search(page, kw)
+            else:
+                # Step 1: 打开站点首页，智能分析搜索入口，执行搜索
+                logger.debug(f"打开站点首页: {self.config.site_url}")
+                page.goto(self.config.site_url, timeout=settings.CRAWL_TIMEOUT * 1000)
+                random_delay(1, 5)
+                page.wait_for_load_state("networkidle", timeout=30000)
 
-            human_mouse_move(page)
-            random_scroll(page)
-            random_delay(0.5, 2)
+                if not self._handle_auto_verify(page):
+                    if detect_captcha(page):
+                        self._handle_captcha()
 
-            self._analyze_and_search(page)
+                human_mouse_move(page)
+                random_scroll(page)
+                random_delay(0.5, 2)
 
-        # Step 2: 解析结果列表 & 翻页
-        self._parse_results_and_paginate(page, context)
+                self._analyze_and_search(page, kw)
+
+            # Step 2: 解析结果列表 & 翻页
+            self._parse_results_and_paginate(page, context)
 
     def _crawl_with_camoufox(self, browser):
-        """Camoufox 引擎的爬取逻辑"""
+        """Camoufox 引擎的爬取逻辑（支持多关键词逐个搜索）"""
         page = browser.new_page()
+        keywords = self.config.keywords or [""]
+        if not (self.config.search_url or self.adapter):
+            keywords = keywords[:1]
 
-        if self.config.search_url:
-            self._analyze_and_search(page)
-        else:
-            # Step 1: 打开站点首页，智能分析搜索入口，执行搜索
-            logger.debug(f"打开站点首页: {self.config.site_url}")
-            page.goto(self.config.site_url, timeout=settings.CRAWL_TIMEOUT * 1000)
-            random_delay(1, 5)
-            page.wait_for_load_state("networkidle", timeout=30000)
+        for kw in keywords:
+            if self._is_expired():
+                break
+            self._current_keyword = kw
+            logger.info(f"[{self.config.site_name}] === 关键词: {kw or '(空)'} ===")
 
-            if not self._handle_auto_verify(page):
-                if detect_captcha(page):
-                    self._handle_captcha()
+            if self.config.search_url or self.adapter:
+                self._analyze_and_search(page, kw)
+            else:
+                logger.debug(f"打开站点首页: {self.config.site_url}")
+                page.goto(self.config.site_url, timeout=settings.CRAWL_TIMEOUT * 1000)
+                random_delay(1, 5)
+                page.wait_for_load_state("networkidle", timeout=30000)
 
-            human_mouse_move(page)
-            random_scroll(page)
-            random_delay(0.5, 2)
+                if not self._handle_auto_verify(page):
+                    if detect_captcha(page):
+                        self._handle_captcha()
 
-            self._analyze_and_search(page)
+                human_mouse_move(page)
+                random_scroll(page)
+                random_delay(0.5, 2)
 
-        # Step 2: 解析结果列表 & 翻页
-        self._parse_results_and_paginate(page, None)
+                self._analyze_and_search(page, kw)
 
-    def _analyze_and_search(self, page):
+            # Step 2: 解析结果列表 & 翻页
+            self._parse_results_and_paginate(page, None)
+
+    def _analyze_and_search(self, page, keyword: str = ""):
         """
         搜索入口：优先使用 Excel 配置的 search_url，否则智能分析。
         """
@@ -196,8 +220,22 @@ class Crawler:
 
         # 如果 Excel 中配置了 search_url 模板，直接使用
         if self.config.search_url:
-            self._search_via_template_url(page)
+            self._search_via_template_url(page, keyword)
             return
+
+        # 命中站点适配器：使用适配器构造的搜索 URL
+        kw_text = keyword or (self.config.keywords[0] if self.config.keywords else "")
+        if self.adapter:
+            adapter_url = self.adapter.get_search_url(kw_text)
+            if adapter_url:
+                logger.info(f"[{site_name}] 使用适配器搜索: {adapter_url[:100]}")
+                page.goto(adapter_url, timeout=settings.CRAWL_TIMEOUT * 1000)
+                self._wait_settled(page)
+                self._handle_auto_verify(page)
+                human_mouse_move(page)
+                random_scroll(page)
+                random_delay(1, 3)
+                return
 
         # 否则走智能搜索分析流程
         search_config = self.search_analyzer.analyze(
@@ -205,7 +243,6 @@ class Crawler:
         )
 
         # 只用第一个关键词搜索，避免多关键词 AND 搜索导致结果骤减
-        kw_text = self.config.keywords[0] if self.config.keywords else ""
         logger.info(f"[{site_name}] 搜索方式: {search_config.method}, 关键词: {kw_text}")
 
         # 根据分析结果执行搜索
@@ -219,7 +256,7 @@ class Crawler:
             # 兜底：使用通用搜索逻辑
             self._perform_search(page)
 
-    def _search_via_template_url(self, page):
+    def _search_via_template_url(self, page, keyword: str = ""):
         """
         使用 Excel 中配置的 search_url 模板直接导航。
         支持占位符: {keyword}, {start_date}, {end_date}, 
@@ -230,8 +267,7 @@ class Crawler:
         import urllib.parse
 
         template = self.config.search_url
-        # 只用第一个关键词搜索，避免多关键词 AND 搜索导致结果骤减
-        kw_text = self.config.keywords[0] if self.config.keywords else ""
+        kw_text = keyword or (self.config.keywords[0] if self.config.keywords else "")
 
         # 替换占位符
         url = template.replace("{keyword}", urllib.parse.quote(kw_text))
@@ -455,15 +491,19 @@ class Crawler:
         page_num = 1
         while page_num <= settings.MAX_PAGES and not self._blocked and not self._is_expired():
             logger.debug(f"正在解析第 {page_num} 页结果列表...")
-            # 等待结果容器出现（AJAX 页面可能延迟渲染）
-            try:
-                page.wait_for_selector(
-                    "ul[class*='result'], .result-list, table tbody, .vT-srch-result-list",
-                    timeout=10000
-                )
-            except Exception:
-                logger.debug("结果容器等待超时，尝试直接解析")
-            random_delay(1, 3)  # 额外等待 AJAX 渲染
+            if self.adapter:
+                # 适配器站点：搜索后已等待页面稳定，直接短延时解析
+                random_delay(1, 2)
+            else:
+                # 等待结果容器出现（AJAX 页面可能延迟渲染）
+                try:
+                    page.wait_for_selector(
+                        "ul[class*='result'], .result-list, table tbody, .vT-srch-result-list",
+                        timeout=10000
+                    )
+                except Exception:
+                    logger.debug("结果容器等待超时，尝试直接解析")
+                random_delay(1, 3)  # 额外等待 AJAX 渲染
             items = self._parse_result_list(page)
             if not items:
                 # Task 5: 连续空页计数
@@ -573,6 +613,14 @@ class Crawler:
         返回标题和链接列表。
         """
         try:
+            # 站点适配器优先：命中则使用站点专用解析
+            if self.adapter:
+                adapter_items = self.adapter.parse_result_list(page)
+                if adapter_items:
+                    logger.info(f"[{self.config.site_name}] 适配器解析到 {len(adapter_items)} 条列表结果")
+                    return adapter_items
+                logger.info(f"[{self.config.site_name}] 适配器未解析到结果，降级通用解析")
+
             # 第一级：通用 CSS/JS 选择器提取
             links = page.evaluate("""() => {
                 const results = [];
@@ -612,8 +660,8 @@ class Crawler:
             links = links if isinstance(links, list) else []
             logger.info(f"CSS 解析到 {len(links)} 条列表结果")
 
-            # 第二级：LLM 降级（CSS 无结果或结果过少时）
-            if (not links or len(links) < 3) and settings.llm_enabled:
+            # 第二级：LLM 降级（CSS 无结果或结果过少时；适配器站点跳过，避免空页浪费调用）
+            if (not links or len(links) < 3) and settings.llm_enabled and not self.adapter:
                 if not links:
                     logger.info("CSS 选择器未匹配到结果，降级到 AI 分析模式...")
                 else:
@@ -664,6 +712,25 @@ class Crawler:
             if not detail_url:
                 continue
 
+            # 适配器标记的完整条目：列表已含全文，无需再开详情页
+            if item.get("complete"):
+                hash_val = url_hash(detail_url)
+                if any(r.url_hash == hash_val for r in self.results):
+                    continue
+                result = CrawlResult(
+                    url=detail_url,
+                    title=title,
+                    item_type=self.config.search_type,
+                )
+                result.publish_date = item.get("publish_date", "")
+                result.amount = item.get("amount", "")
+                result.source_org = item.get("source_org", "")
+                result.detail_text = item.get("detail_text", "")
+                result.keywords_matched = self._current_keyword
+                self.results.append(result)
+                logger.debug(f"适配器完整条目入库: {title[:40]}")
+                continue
+
             try:
                 # 检查是否已有此 URL
                 hash_val = url_hash(detail_url)
@@ -707,7 +774,7 @@ class Crawler:
                         result.amount = ex.get("amount", "")
                         result.source_org = ex.get("source_org", "")
                         result.detail_text = ex.get("content_summary", "")
-                        result.keywords_matched = self.config.keywords_str
+                        result.keywords_matched = self._current_keyword
                         self.results.append(result)
                 else:
                     # 即使提取为空，也记录基础信息
@@ -716,7 +783,7 @@ class Crawler:
                         title=title,
                         item_type=self.config.search_type,
                     )
-                    result.keywords_matched = self.config.keywords_str
+                    result.keywords_matched = self._current_keyword
                     self.results.append(result)
 
                 detail_page.close()
