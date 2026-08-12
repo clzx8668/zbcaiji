@@ -19,6 +19,8 @@ class BaseSiteAdapter:
 
     # 站点名称（与 Excel 中 site_name 匹配）
     site_name: str = ""
+    # 是否支持按关键词搜索（False 表示站点无关键词搜索，爬虫单遍采集、适配器本地过滤）
+    MULTI_KEYWORD_SEARCH: bool = True
 
     def __init__(self, config: SiteConfig):
         self.config = config
@@ -31,8 +33,13 @@ class BaseSiteAdapter:
         """
         return self.config.site_url
 
-    def after_search(self, page) -> None:
-        """搜索页加载完成后调用（如点击排序/时间筛选等），默认无操作。"""
+    def after_search(self, page, keyword: str = "") -> None:
+        """搜索页加载完成后调用（如点击排序/时间筛选/输入二次搜索等），默认无操作。
+
+        Args:
+            page: Playwright page 对象
+            keyword: 当前正在搜索的关键词（多关键词站点可用于页面内二次搜索）
+        """
         return None
 
     def fill_search_form(self, page) -> bool:

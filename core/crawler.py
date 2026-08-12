@@ -147,6 +147,9 @@ class Crawler:
         # 通用启发式站点仅搜第一个关键词（避免反复重分析首页）；模板/适配器站点逐词搜索
         if not (self.config.search_url or self.adapter):
             keywords = keywords[:1]
+        # 适配器声明不支持关键词搜索时（如首页全量流站点），单遍采集、适配器内部过滤
+        if self.adapter and not getattr(self.adapter, "MULTI_KEYWORD_SEARCH", True):
+            keywords = [""]
 
         for kw in keywords:
             if self._is_expired():
@@ -184,6 +187,8 @@ class Crawler:
         keywords = self.config.keywords or [""]
         if not (self.config.search_url or self.adapter):
             keywords = keywords[:1]
+        if self.adapter and not getattr(self.adapter, "MULTI_KEYWORD_SEARCH", True):
+            keywords = [""]
 
         for kw in keywords:
             if self._is_expired():
@@ -232,8 +237,8 @@ class Crawler:
                 page.goto(adapter_url, timeout=settings.CRAWL_TIMEOUT * 1000)
                 self._wait_settled(page)
                 self._handle_auto_verify(page)
-                # 适配器在搜索页上的后续操作（如点击时间筛选 Tab）
-                self.adapter.after_search(page)
+                # 适配器在搜索页上的后续操作（如点击时间筛选 Tab、输入页面内搜索框）
+                self.adapter.after_search(page, keyword)
                 human_mouse_move(page)
                 random_scroll(page)
                 random_delay(1, 3)
@@ -618,10 +623,9 @@ class Crawler:
             # 站点适配器优先：命中则使用站点专用解析
             if self.adapter:
                 adapter_items = self.adapter.parse_result_list(page)
-                if adapter_items:
-                    logger.info(f"[{self.config.site_name}] 适配器解析到 {len(adapter_items)} 条列表结果")
-                    return adapter_items
-                logger.info(f"[{self.config.site_name}] 适配器未解析到结果，降级通用解析")
+                logger.info(f"[{self.config.site_name}] 适配器解析到 {len(adapter_items)} 条列表结果")
+                # 适配器站点以适配器为准，不降级通用解析，避免误抓噪音
+                return adapter_items
 
             # 第一级：通用 CSS/JS 选择器提取
             links = page.evaluate("""() => {
@@ -728,7 +732,7 @@ class Crawler:
                 result.amount = item.get("amount", "")
                 result.source_org = item.get("source_org", "")
                 result.detail_text = item.get("detail_text", "")
-                result.keywords_matched = self._current_keyword
+                result.keywords_matched = item.get("keywords_matched") or self._current_keyword
                 self.results.append(result)
                 logger.debug(f"适配器完整条目入库: {title[:40]}")
                 continue

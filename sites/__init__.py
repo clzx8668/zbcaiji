@@ -41,3 +41,13 @@ def list_adapters() -> list:
 # register(ExampleSiteAdapter)
 from sites.zcy import ZcySiteAdapter
 register(ZcySiteAdapter)
+from sites.sinopec import SinopecSiteAdapter
+register(SinopecSiteAdapter)
+from sites.minegoods import MineGoodsSiteAdapter
+register(MineGoodsSiteAdapter)
+from sites.cnooc import CnoocSiteAdapter
+register(CnoocSiteAdapter)
+from sites.cnpc import CnpcSiteAdapter
+register(CnpcSiteAdapter)
+from sites.chng import ChngSiteAdapter
+register(ChngSiteAdapter)
